@@ -1,0 +1,73 @@
+{
+	"name": "car",
+	"plugin-id": "Sprite",
+	"sid": 128433409744355,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [
+		{
+			"behaviorId": "Car",
+			"name": "Машина",
+			"sid": 379699239904536
+		},
+		{
+			"behaviorId": "scrollto",
+			"name": "СледитьЗа",
+			"sid": 409545389059391
+		}
+	],
+	"effectTypes": [],
+	"animations": {
+		"items": [
+			{
+				"frames": [
+					{
+						"width": 2000,
+						"height": 2000,
+						"originX": 0.5,
+						"originY": 0.5,
+						"originalSource": "",
+						"exportFormat": "lossless",
+						"exportQuality": 0.8,
+						"fileType": "image/png",
+						"imageSpriteId": 8978185,
+						"collisionPoly": {
+							"points": [
+								0.413,
+								0.2435,
+								0.6115,
+								0.2795,
+								0.877,
+								0.404,
+								0.888,
+								0.5,
+								0.72,
+								0.7555,
+								0.2605,
+								0.751,
+								0.1705,
+								0.682,
+								0.1135,
+								0.5075,
+								0.146,
+								0.37
+							]
+						},
+						"useCollisionPoly": true,
+						"duration": 1,
+						"tag": ""
+					}
+				],
+				"sid": 181387613021458,
+				"name": "Animation 1",
+				"isLooping": false,
+				"isPingPong": false,
+				"repeatCount": 1,
+				"repeatTo": 0,
+				"speed": 5
+			}
+		],
+		"subfolders": []
+	}
+}

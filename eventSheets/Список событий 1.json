@@ -1,0 +1,665 @@
+{
+	"name": "Список событий 1",
+	"events": [
+		{
+			"eventType": "variable",
+			"name": "HP",
+			"type": "number",
+			"initialValue": "3",
+			"comment": "",
+			"isStatic": false,
+			"isConstant": false,
+			"sid": 747255924289104
+		},
+		{
+			"eventType": "variable",
+			"name": "Phase",
+			"type": "number",
+			"initialValue": "0",
+			"comment": "0 — игрок ловит врагов, 1 — враги гонятся за игроком, 2 — победа",
+			"isStatic": false,
+			"isConstant": false,
+			"sid": 471014396881797
+		},
+		{
+			"eventType": "variable",
+			"name": "TimeLeft",
+			"type": "number",
+			"initialValue": "30",
+			"comment": "сколько секунд осталось до смены фазы",
+			"isStatic": false,
+			"isConstant": false,
+			"sid": 403227285425942
+		},
+		{
+			"eventType": "variable",
+			"name": "Invuln",
+			"type": "number",
+			"initialValue": "0",
+			"comment": "неуязвимость после удара, в секундах",
+			"isStatic": false,
+			"isConstant": false,
+			"sid": 372400793295762
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "on-start-of-layout",
+					"objectClass": "System",
+					"sid": 387891151890273
+				}
+			],
+			"actions": [
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 940801228911435,
+					"parameters": {
+						"variable": "HP",
+						"value": "3"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 612280805841442,
+					"parameters": {
+						"variable": "Phase",
+						"value": "0"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 298752920359821,
+					"parameters": {
+						"variable": "TimeLeft",
+						"value": "30"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 785331502853134,
+					"parameters": {
+						"variable": "Invuln",
+						"value": "0"
+					}
+				},
+				{
+					"id": "set-animation",
+					"objectClass": "hearth",
+					"sid": 944577633308470,
+					"parameters": {
+						"animation": "\"full_hearth\"",
+						"from": "beginning"
+					}
+				},
+				{
+					"id": "set-animation",
+					"objectClass": "enemy",
+					"sid": 713175615610919,
+					"parameters": {
+						"animation": "\"Animation 1\"",
+						"from": "beginning"
+					}
+				},
+				{
+					"id": "set-text",
+					"objectClass": "Таймер",
+					"sid": 800222807533192,
+					"parameters": {
+						"text": "\"Лови! 30\""
+					}
+				}
+			],
+			"sid": 891020280144018
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 489872946947119,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 2,
+						"value": "2"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "subtract-from-eventvar",
+					"objectClass": "System",
+					"sid": 112637322879925,
+					"parameters": {
+						"variable": "TimeLeft",
+						"value": "dt"
+					}
+				}
+			],
+			"sid": 165559337213124
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 550985957875896,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "0"
+					}
+				},
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 233313805764727,
+					"parameters": {
+						"variable": "TimeLeft",
+						"comparison": 3,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 694386843509800,
+					"parameters": {
+						"variable": "Phase",
+						"value": "1"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 847138439580492,
+					"parameters": {
+						"variable": "TimeLeft",
+						"value": "10"
+					}
+				},
+				{
+					"id": "set-animation",
+					"objectClass": "enemy",
+					"sid": 277833378606304,
+					"parameters": {
+						"animation": "\"red\"",
+						"from": "beginning"
+					}
+				}
+			],
+			"sid": 519763429454875
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 972968795730915,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "1"
+					}
+				},
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 752814560795664,
+					"parameters": {
+						"variable": "TimeLeft",
+						"comparison": 3,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 551814793852250,
+					"parameters": {
+						"variable": "Phase",
+						"value": "0"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 662115153513915,
+					"parameters": {
+						"variable": "TimeLeft",
+						"value": "30"
+					}
+				},
+				{
+					"id": "set-animation",
+					"objectClass": "enemy",
+					"sid": 656254808608245,
+					"parameters": {
+						"animation": "\"Animation 1\"",
+						"from": "beginning"
+					}
+				}
+			],
+			"sid": 644845635760084
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 150923736546023,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 2,
+						"value": "2"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-text",
+					"objectClass": "Таймер",
+					"sid": 890495125227170,
+					"parameters": {
+						"text": "(Phase = 0 ? \"Лови! \" : \"Беги! \") & ceil(TimeLeft)"
+					}
+				}
+			],
+			"sid": 210011980258330
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 551294046353718,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [],
+			"sid": 553369213713626,
+			"children": [
+				{
+					"eventType": "block",
+					"conditions": [
+						{
+							"id": "pick-by-comparison",
+							"objectClass": "System",
+							"sid": 817686813887428,
+							"parameters": {
+								"object": "enemy",
+								"expression": "distance(car.X, car.Y, enemy.X, enemy.Y)",
+								"comparison": 2,
+								"value": "300"
+							}
+						}
+					],
+					"actions": [
+						{
+							"id": "set-speed",
+							"objectClass": "enemy",
+							"sid": 442557979841724,
+							"behaviorType": "Пуля",
+							"parameters": {
+								"speed": "200"
+							}
+						},
+						{
+							"id": "rotate-toward-angle",
+							"objectClass": "enemy",
+							"sid": 404314723861488,
+							"parameters": {
+								"degrees": "5",
+								"angle": "angle(car.X, car.Y, enemy.X, enemy.Y)"
+							}
+						},
+						{
+							"id": "set-angle-of-motion",
+							"objectClass": "enemy",
+							"sid": 762067078200638,
+							"behaviorType": "Пуля",
+							"parameters": {
+								"angle": "enemy.Angle"
+							}
+						}
+					],
+					"sid": 556836517515232
+				},
+				{
+					"eventType": "block",
+					"conditions": [
+						{
+							"id": "pick-by-comparison",
+							"objectClass": "System",
+							"sid": 745365912725730,
+							"parameters": {
+								"object": "enemy",
+								"expression": "distance(car.X, car.Y, enemy.X, enemy.Y)",
+								"comparison": 5,
+								"value": "300"
+							}
+						}
+					],
+					"actions": [
+						{
+							"id": "set-speed",
+							"objectClass": "enemy",
+							"sid": 878206627427226,
+							"behaviorType": "Пуля",
+							"parameters": {
+								"speed": "0"
+							}
+						}
+					],
+					"sid": 301033628597043
+				}
+			]
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 410319280372097,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "1"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-speed",
+					"objectClass": "enemy",
+					"sid": 540483253984863,
+					"behaviorType": "Пуля",
+					"parameters": {
+						"speed": "250"
+					}
+				},
+				{
+					"id": "rotate-toward-angle",
+					"objectClass": "enemy",
+					"sid": 452437073110609,
+					"parameters": {
+						"degrees": "4",
+						"angle": "angle(enemy.X, enemy.Y, car.X, car.Y)"
+					}
+				},
+				{
+					"id": "set-angle-of-motion",
+					"objectClass": "enemy",
+					"sid": 171223431374171,
+					"behaviorType": "Пуля",
+					"parameters": {
+						"angle": "enemy.Angle"
+					}
+				}
+			],
+			"sid": 528609139884329
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "on-collision-with-another-object",
+					"objectClass": "car",
+					"sid": 607987452418248,
+					"parameters": {
+						"object": "enemy"
+					}
+				},
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 110792620356140,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "destroy",
+					"objectClass": "enemy",
+					"sid": 384447109539056
+				}
+			],
+			"sid": 481647561565885
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "is-overlapping-another-object",
+					"objectClass": "car",
+					"sid": 896997458088914,
+					"parameters": {
+						"object": "enemy"
+					}
+				},
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 339951983166000,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 0,
+						"value": "1"
+					}
+				},
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 673956061311090,
+					"parameters": {
+						"variable": "Invuln",
+						"comparison": 3,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "subtract-from-eventvar",
+					"objectClass": "System",
+					"sid": 584204122120878,
+					"parameters": {
+						"variable": "HP",
+						"value": "1"
+					}
+				},
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 492423027152231,
+					"parameters": {
+						"variable": "Invuln",
+						"value": "1.5"
+					}
+				}
+			],
+			"sid": 713161067333205,
+			"children": [
+				{
+					"eventType": "block",
+					"conditions": [
+						{
+							"id": "compare-instance-variable",
+							"objectClass": "hearth",
+							"sid": 978321646710792,
+							"parameters": {
+								"instance-variable": "num",
+								"comparison": 4,
+								"value": "HP"
+							}
+						}
+					],
+					"actions": [
+						{
+							"id": "set-animation",
+							"objectClass": "hearth",
+							"sid": 384583955105878,
+							"parameters": {
+								"animation": "\"none_hearth\"",
+								"from": "beginning"
+							}
+						}
+					],
+					"sid": 605762114904126
+				}
+			]
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 679078726965034,
+					"parameters": {
+						"variable": "Invuln",
+						"comparison": 4,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "subtract-from-eventvar",
+					"objectClass": "System",
+					"sid": 655982923203782,
+					"parameters": {
+						"variable": "Invuln",
+						"value": "dt"
+					}
+				},
+				{
+					"id": "set-opacity",
+					"objectClass": "car",
+					"sid": 769564054394547,
+					"parameters": {
+						"opacity": "50"
+					}
+				}
+			],
+			"sid": 830995144489208
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 549941883259225,
+					"parameters": {
+						"variable": "Invuln",
+						"comparison": 3,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-opacity",
+					"objectClass": "car",
+					"sid": 731092811125710,
+					"parameters": {
+						"opacity": "100"
+					}
+				}
+			],
+			"sid": 276978094809355
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 274871676975272,
+					"parameters": {
+						"variable": "HP",
+						"comparison": 3,
+						"value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "restart-layout",
+					"objectClass": "System",
+					"sid": 288150864426401
+				}
+			],
+			"sid": 563085494638525
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "compare-eventvar",
+					"objectClass": "System",
+					"sid": 755417747521482,
+					"parameters": {
+						"variable": "Phase",
+						"comparison": 2,
+						"value": "2"
+					}
+				},
+				{
+					"id": "compare-two-values",
+					"objectClass": "System",
+					"sid": 835103111890963,
+					"parameters": {
+						"first-value": "enemy.Count",
+						"comparison": 0,
+						"second-value": "0"
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "set-eventvar-value",
+					"objectClass": "System",
+					"sid": 160542619821452,
+					"parameters": {
+						"variable": "Phase",
+						"value": "2"
+					}
+				},
+				{
+					"id": "set-text",
+					"objectClass": "Таймер",
+					"sid": 278510823388338,
+					"parameters": {
+						"text": "\"Победа!\""
+					}
+				}
+			],
+			"sid": 760186008669581
+		}
+	],
+	"sid": 196247585968639
+}

@@ -1,0 +1,10 @@
+{
+	"name": "Таймер",
+	"plugin-id": "Text",
+	"sid": 686928176767663,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": []
+}
