@@ -234,7 +234,7 @@
 								"friction": 0.4,
 								"turn-while-stopped": false,
 								"set-angle": true,
-								"default-controls": true,
+								"default-controls": false,
 								"enabled": true
 							}
 						},

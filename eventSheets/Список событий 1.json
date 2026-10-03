@@ -659,6 +659,106 @@
 				}
 			],
 			"sid": 760186008669581
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "key-is-down",
+					"objectClass": "Клавиатура",
+					"sid": 684500854919304,
+					"parameters": {
+						"key": 87
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "simulate-control",
+					"objectClass": "car",
+					"sid": 324519830356824,
+					"behaviorType": "Машина",
+					"parameters": {
+						"control": "accelerate"
+					}
+				}
+			],
+			"sid": 488231305113334
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "key-is-down",
+					"objectClass": "Клавиатура",
+					"sid": 656295200227528,
+					"parameters": {
+						"key": 83
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "simulate-control",
+					"objectClass": "car",
+					"sid": 633922466107292,
+					"behaviorType": "Машина",
+					"parameters": {
+						"control": "brake"
+					}
+				}
+			],
+			"sid": 727670467524510
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "key-is-down",
+					"objectClass": "Клавиатура",
+					"sid": 656663123379952,
+					"parameters": {
+						"key": 68
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "simulate-control",
+					"objectClass": "car",
+					"sid": 610350297828576,
+					"behaviorType": "Машина",
+					"parameters": {
+						"control": "steer-right"
+					}
+				}
+			],
+			"sid": 453917234481490
+		},
+		{
+			"eventType": "block",
+			"conditions": [
+				{
+					"id": "key-is-down",
+					"objectClass": "Клавиатура",
+					"sid": 436933899250779,
+					"parameters": {
+						"key": 65
+					}
+				}
+			],
+			"actions": [
+				{
+					"id": "simulate-control",
+					"objectClass": "car",
+					"sid": 373500421733992,
+					"behaviorType": "Машина",
+					"parameters": {
+						"control": "steer-left"
+					}
+				}
+			],
+			"sid": 798510336760124
 		}
 	],
 	"sid": 196247585968639
