@@ -89,14 +89,21 @@
 		"subfolders": []
 	},
 	"eventSheets": {
-		"items": [
-			"Список событий 1"
-		],
+		"items": [],
 		"subfolders": []
 	},
 	"rootFileFolders": {
 		"script": {
-			"items": [],
+			"items": [
+				{
+					"name": "основной.js",
+					"type": "application/javascript",
+					"sid": 340309789893241,
+					"script-info": {
+						"purpose": "main"
+					}
+				}
+			],
 			"subfolders": []
 		},
 		"sound": {
