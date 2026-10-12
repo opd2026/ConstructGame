@@ -8,8 +8,22 @@
 	"usedAddons": [
 		{
 			"type": "plugin",
+			"id": "Button",
+			"name": "Кнопка",
+			"author": "Scirra",
+			"bundled": false
+		},
+		{
+			"type": "plugin",
 			"id": "Keyboard",
 			"name": "Клавиатура",
+			"author": "Scirra",
+			"bundled": false
+		},
+		{
+			"type": "plugin",
+			"id": "Mouse",
+			"name": "Мышь",
 			"author": "Scirra",
 			"bundled": false
 		},
@@ -71,7 +85,10 @@
 			"enemy",
 			"hearth",
 			"Клавиатура",
-			"Таймер"
+			"Таймер",
+			"КнопкаОхотника",
+			"КнопкаМиника",
+			"Мышь"
 		],
 		"subfolders": []
 	},
@@ -84,12 +101,16 @@
 	},
 	"layouts": {
 		"items": [
-			"Макет 1"
+			"Макет 1",
+			"Меню"
 		],
 		"subfolders": []
 	},
 	"eventSheets": {
-		"items": [],
+		"items": [
+			"Список событий 1",
+			"ЛистМеню"
+		],
 		"subfolders": []
 	},
 	"rootFileFolders": {
@@ -101,6 +122,14 @@
 					"sid": 340309789893241,
 					"script-info": {
 						"purpose": "main"
+					}
+				},
+				{
+					"name": "меню.js",
+					"type": "application/javascript",
+					"sid": 218427833629934,
+					"script-info": {
+						"purpose": "none"
 					}
 				}
 			],
