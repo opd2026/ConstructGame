@@ -3,6 +3,10 @@ let HP = 3;          // жизни
 let Phase = 0;       // 0 — ловим врагов, 1 — враги гонятся за нами, 2 — победа
 let TimeLeft = 30;   // секунд до смены фазы
 let Invuln = 0;      // секунд неуязвимости после удара
+let CamZoom = 1;          // текущий масштаб камеры
+const ZoomMin = 0.7;      // насколько отдаляемся на максимальной скорости (меньше = дальше)
+const SpeedMax = 600;     // скорость, при которой отдаление максимальное
+const ZoomSmooth = 4;     // плавность: больше = резче реакция
 
 // ===== Запуск =====
 runOnStartup(async runtime =>
@@ -17,6 +21,7 @@ runOnStartup(async runtime =>
 // ===== Начало игры =====
 function StartGame(runtime)
 {
+	CamZoom = 1;
 	HP = 3;
 	Phase = 0;
 	TimeLeft = 30;
@@ -28,7 +33,19 @@ function StartGame(runtime)
 	for (const enemy of runtime.objects.enemy.instances())
 		enemy.setAnimation("Animation 1");
 }
+// ===== Камера: следим за машиной, на скорости отдаляемся =====
+function UpdateCamera(runtime, car)
+{
+	const speed = Math.abs(car.behaviors.Машина.speed);
+	const t = Math.min(speed / SpeedMax, 1);          // 0..1
+	const target = 1 + (ZoomMin - 1) * t;              // целевой масштаб
 
+	// плавно тянем текущий масштаб к целевому
+	CamZoom += (target - CamZoom) * (1 - Math.exp(-ZoomSmooth * runtime.dt));
+
+	runtime.layout.scale = CamZoom;
+	runtime.layout.scrollTo(car.x, car.y);
+}
 // ===== Каждый кадр =====
 function Tick(runtime)
 {
@@ -41,6 +58,7 @@ function Tick(runtime)
 	CheckHits(runtime, car);
 	UpdateInvuln(runtime, car);
 	CheckWin(runtime);
+	UpdateCamera(runtime, car);
 }
 
 // ===== Управление: WASD или стрелки =====

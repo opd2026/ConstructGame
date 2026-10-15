@@ -1,6 +1,6 @@
 {
 	"projectFormatVersion": 1,
-	"savedWithRelease": 49502,
+	"savedWithRelease": 50600,
 	"name": "Новый проект",
 	"runtime": "c3",
 	"useWorker": "auto",
@@ -101,8 +101,8 @@
 	},
 	"layouts": {
 		"items": [
-			"Макет 1",
-			"Меню"
+			"Меню",
+			"Макет 1"
 		],
 		"subfolders": []
 	},
@@ -246,8 +246,8 @@
 		"authorEmail": "",
 		"authorWebsite": "",
 		"appId": "",
+		"saveLLMContextFile": true,
 		"pixelRounding": false,
-		"zAxisScale": "regular",
 		"fov": 0.7853981633974483,
 		"useLoaderLayout": false,
 		"fullscreenMode": "letterbox-scale",
@@ -288,6 +288,7 @@
 		"loaderStyle": "splash",
 		"preloadSounds": true,
 		"uidAllocationMode": "increment",
+		"zAxisScale": "regular",
 		"cordovaiOSScheme": "app",
 		"cordovaAndroidScheme": "https",
 		"exportFileStructure": "folders",
