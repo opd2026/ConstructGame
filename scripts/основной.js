@@ -3,25 +3,52 @@ let HP = 3;          // жизни
 let Phase = 0;       // 0 — ловим врагов, 1 — враги гонятся за нами, 2 — победа
 let TimeLeft = 30;   // секунд до смены фазы
 let Invuln = 0;      // секунд неуязвимости после удара
-let CamZoom = 1;          // текущий масштаб камеры
-const ZoomMin = 0.7;      // насколько отдаляемся на максимальной скорости (меньше = дальше)
+const ZoomStart = 1.6;    // приближение на старте и при стоянии (больше = ближе)
+const ZoomMin = 1.0;      // отдаление на максимальной скорости (меньше = дальше)
+let CamZoom = ZoomStart;  // текущий масштаб камеры
 const SpeedMax = 600;     // скорость, при которой отдаление максимальное
 const ZoomSmooth = 4;     // плавность: больше = резче реакция
+let Player = null;
+
+let IsHunter = true;      // выбор в меню: true — охотник, false — миник
+
+// ===== Имена макетов =====
+const MENU_LAYOUT = "Меню";
+const GAME_LAYOUT = "Макет 1";
 
 // ===== Запуск =====
 runOnStartup(async runtime =>
 {
-	// при каждом старте макета (и после рестарта) — сброс
-	runtime.addEventListener("afteranylayoutstart", () => StartGame(runtime));
+	// --- Макеты ---
+	runtime.getLayout(MENU_LAYOUT).addEventListener("afterlayoutstart", () => StartMenu(runtime));
+	runtime.getLayout(GAME_LAYOUT).addEventListener("afterlayoutstart", () => StartGame(runtime));
 
-	// каждый кадр — игра
-	runtime.addEventListener("tick", () => Tick(runtime));
+	// каждый кадр — игра, но только на игровом макете
+	runtime.addEventListener("tick", () =>
+	{
+		if (runtime.layout.name === GAME_LAYOUT) Tick(runtime);
+	});
 });
+
+// ===== Меню: кнопки выбора роли =====
+function StartMenu(runtime)
+{
+	const hunterBtn = runtime.objects.КнопкаОхотника.getFirstInstance();
+	const minicBtn  = runtime.objects.КнопкаМиника.getFirstInstance();
+
+	hunterBtn?.addEventListener("click", () => SelectRole(runtime, true));
+	minicBtn?.addEventListener("click",  () => SelectRole(runtime, false));
+}
+
+function SelectRole(runtime, hunter)
+{
+	IsHunter = hunter;
+	runtime.goToLayout(GAME_LAYOUT);
+}
 
 // ===== Начало игры =====
 function StartGame(runtime)
 {
-	CamZoom = 1;
 	HP = 3;
 	Phase = 0;
 	TimeLeft = 30;
@@ -32,45 +59,100 @@ function StartGame(runtime)
 
 	for (const enemy of runtime.objects.enemy.instances())
 		enemy.setAnimation("Animation 1");
+
+	// выбираем, кем управляет игрок
+	const enemies = runtime.objects.enemy.getAllInstances();
+
+	Player = IsHunter
+		? runtime.objects.car.getFirstInstance()
+		: enemies[Math.floor(Math.random() * enemies.length)] ?? null;
+
+	// сразу приближаемся к игроку, без «наезда» камеры
+	ResetCamera(runtime, Player);
 }
 // ===== Камера: следим за машиной, на скорости отдаляемся =====
 function UpdateCamera(runtime, car)
 {
-	const speed = Math.abs(car.behaviors.Машина.speed);
-	const t = Math.min(speed / SpeedMax, 1);          // 0..1
-	const target = 1 + (ZoomMin - 1) * t;              // целевой масштаб
+	const move = car.behaviors.Машина ?? car.behaviors.Пуля;
+	const speed = Math.abs(move ? move.speed : 0);
+	const t = Math.min(speed / SpeedMax, 1);                  // 0..1
+	let target = ZoomStart + (ZoomMin - ZoomStart) * t;       // целевой масштаб
+
+	// нельзя отдаляться так, чтобы было видно пустоту за краями макета
+	const layout = runtime.layout;
+	const fitScale = Math.max(runtime.viewportWidth / layout.width,
+	                          runtime.viewportHeight / layout.height);
+	target = Math.max(target, fitScale);
 
 	// плавно тянем текущий масштаб к целевому
 	CamZoom += (target - CamZoom) * (1 - Math.exp(-ZoomSmooth * runtime.dt));
+	CamZoom = Math.max(CamZoom, fitScale);
 
-	runtime.layout.scale = CamZoom;
-	runtime.layout.scrollTo(car.x, car.y);
+	layout.scale = CamZoom;
+
+	// держим камеру внутри макета
+	const halfW = runtime.viewportWidth  / CamZoom / 2;
+	const halfH = runtime.viewportHeight / CamZoom / 2;
+	const x = Math.min(Math.max(car.x, halfW), layout.width  - halfW);
+	const y = Math.min(Math.max(car.y, halfH), layout.height - halfH);
+	layout.scrollTo(x, y);
+}
+
+// мгновенно поставить камеру на машину (без плавного наезда)
+function ResetCamera(runtime, car)
+{
+	CamZoom = ZoomStart;
+	if (car) UpdateCamera(runtime, car);
 }
 // ===== Каждый кадр =====
 function Tick(runtime)
 {
+	if (!Player || Player.isDestroyed) return;
+
 	const car = runtime.objects.car.getFirstInstance();
 	if (!car) return;
 
-	Controls(runtime, car);
+	Controls(runtime, Player);
 	UpdateTimer(runtime);
 	MoveEnemies(runtime, car);
 	CheckHits(runtime, car);
-	UpdateInvuln(runtime, car);
+	UpdateInvuln(runtime, Player);
 	CheckWin(runtime);
-	UpdateCamera(runtime, car);
+	UpdateCamera(runtime, Player);
 }
 
 // ===== Управление: WASD или стрелки =====
 function Controls(runtime, car)
 {
 	const key = runtime.keyboard;
-	const drive = car.behaviors.Машина;
+	const up    = key.isKeyDown("KeyW") || key.isKeyDown("ArrowUp");
+	const down  = key.isKeyDown("KeyS") || key.isKeyDown("ArrowDown");
+	const left  = key.isKeyDown("KeyA") || key.isKeyDown("ArrowLeft");
+	const right = key.isKeyDown("KeyD") || key.isKeyDown("ArrowRight");
 
-	if (key.isKeyDown("KeyW") || key.isKeyDown("ArrowUp"))    drive.simulateControl("up");
-	if (key.isKeyDown("KeyS") || key.isKeyDown("ArrowDown"))  drive.simulateControl("down");
-	if (key.isKeyDown("KeyA") || key.isKeyDown("ArrowLeft"))  drive.simulateControl("left");
-	if (key.isKeyDown("KeyD") || key.isKeyDown("ArrowRight")) drive.simulateControl("right");
+	// машина — через поведение «Машина»
+	const drive = car.behaviors.Машина;
+	if (drive)
+	{
+		if (up)    drive.simulateControl("up");
+		if (down)  drive.simulateControl("down");
+		if (left)  drive.simulateControl("left");
+		if (right) drive.simulateControl("right");
+		return;
+	}
+
+	// враг — через поведение «Пуля»: A/D поворот, W/S газ/назад
+	const bullet = car.behaviors.Пуля;
+	if (!bullet) return;
+
+	const TurnSpeed = 3;   // градусов за кадр
+	const MoveSpeed = 250;
+
+	if (left)  car.angle -= TurnSpeed * Math.PI / 180;
+	if (right) car.angle += TurnSpeed * Math.PI / 180;
+
+	bullet.speed = up ? MoveSpeed : down ? -MoveSpeed / 2 : 0;
+	bullet.angleOfMotion = car.angle;
 }
 
 // ===== Таймер: 30 с ловим, 10 с убегаем =====
@@ -111,6 +193,8 @@ function MoveEnemies(runtime, car)
 {
 	for (const enemy of runtime.objects.enemy.instances())
 	{
+		if (enemy === Player) continue;   // игроком управляет клавиатура
+
 		const bullet = enemy.behaviors.Пуля;
 
 		if (Phase === 0)

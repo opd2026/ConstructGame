@@ -1,6 +1,6 @@
 {
 	"projectFormatVersion": 1,
-	"savedWithRelease": 50600,
+	"savedWithRelease": 50602,
 	"name": "Новый проект",
 	"runtime": "c3",
 	"useWorker": "auto",
@@ -88,7 +88,11 @@
 			"Таймер",
 			"КнопкаОхотника",
 			"КнопкаМиника",
-			"Мышь"
+			"Мышь",
+			"ТайловыйФон",
+			"Спрайт",
+			"ТайловыйФон2",
+			"Спрайт2"
 		],
 		"subfolders": []
 	},
@@ -107,10 +111,7 @@
 		"subfolders": []
 	},
 	"eventSheets": {
-		"items": [
-			"Список событий 1",
-			"ЛистМеню"
-		],
+		"items": [],
 		"subfolders": []
 	},
 	"rootFileFolders": {
@@ -122,14 +123,6 @@
 					"sid": 340309789893241,
 					"script-info": {
 						"purpose": "main"
-					}
-				},
-				{
-					"name": "меню.js",
-					"type": "application/javascript",
-					"sid": 218427833629934,
-					"script-info": {
-						"purpose": "none"
 					}
 				}
 			],
