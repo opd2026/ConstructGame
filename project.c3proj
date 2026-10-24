@@ -1,6 +1,6 @@
 {
 	"projectFormatVersion": 1,
-	"savedWithRelease": 49502,
+	"savedWithRelease": 50602,
 	"name": "Новый проект",
 	"runtime": "c3",
 	"useWorker": "auto",
@@ -8,8 +8,22 @@
 	"usedAddons": [
 		{
 			"type": "plugin",
+			"id": "Button",
+			"name": "Кнопка",
+			"author": "Scirra",
+			"bundled": false
+		},
+		{
+			"type": "plugin",
 			"id": "Keyboard",
 			"name": "Клавиатура",
+			"author": "Scirra",
+			"bundled": false
+		},
+		{
+			"type": "plugin",
+			"id": "Mouse",
+			"name": "Мышь",
 			"author": "Scirra",
 			"bundled": false
 		},
@@ -71,7 +85,14 @@
 			"enemy",
 			"hearth",
 			"Клавиатура",
-			"Таймер"
+			"Таймер",
+			"КнопкаОхотника",
+			"КнопкаМиника",
+			"Мышь",
+			"ТайловыйФон",
+			"Спрайт",
+			"ТайловыйФон2",
+			"Спрайт2"
 		],
 		"subfolders": []
 	},
@@ -84,19 +105,27 @@
 	},
 	"layouts": {
 		"items": [
+			"Меню",
 			"Макет 1"
 		],
 		"subfolders": []
 	},
 	"eventSheets": {
-		"items": [
-			"Список событий 1"
-		],
+		"items": [],
 		"subfolders": []
 	},
 	"rootFileFolders": {
 		"script": {
-			"items": [],
+			"items": [
+				{
+					"name": "основной.js",
+					"type": "application/javascript",
+					"sid": 340309789893241,
+					"script-info": {
+						"purpose": "main"
+					}
+				}
+			],
 			"subfolders": []
 		},
 		"sound": {
@@ -210,8 +239,8 @@
 		"authorEmail": "",
 		"authorWebsite": "",
 		"appId": "",
+		"saveLLMContextFile": true,
 		"pixelRounding": false,
-		"zAxisScale": "regular",
 		"fov": 0.7853981633974483,
 		"useLoaderLayout": false,
 		"fullscreenMode": "letterbox-scale",
@@ -252,6 +281,7 @@
 		"loaderStyle": "splash",
 		"preloadSounds": true,
 		"uidAllocationMode": "increment",
+		"zAxisScale": "regular",
 		"cordovaiOSScheme": "app",
 		"cordovaAndroidScheme": "https",
 		"exportFileStructure": "folders",
