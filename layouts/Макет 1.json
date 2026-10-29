@@ -914,7 +914,7 @@
 						"text": "Текст",
 						"enable-bbcode": true,
 						"font": "Algerian",
-						"size": 32,
+						"size": 32.3,
 						"line-height": 0,
 						"bold": false,
 						"italic": false,
@@ -982,6 +982,56 @@
 						"height": 26,
 						"originX": 0.5,
 						"originY": 0.5,
+						"color": [
+							1,
+							1,
+							1,
+							1
+						],
+						"z": 0,
+						"angle": 0
+					}
+				},
+				{
+					"type": "КоличествоМашинок",
+					"properties": {
+						"text": "Текст",
+						"enable-bbcode": true,
+						"font": "Algerian",
+						"size": 32,
+						"line-height": 0,
+						"bold": false,
+						"italic": false,
+						"color": [
+							0,
+							0,
+							0,
+							1
+						],
+						"horizontal-alignment": "left",
+						"vertical-alignment": "top",
+						"wrapping": "word",
+						"text-direction": "ltr",
+						"icon-set": -1,
+						"initially-visible": true,
+						"origin": "top-left",
+						"read-aloud": false
+					},
+					"uid": 31,
+					"sid": 701082598083727,
+					"tags": "",
+					"instanceVariables": {},
+					"behaviors": {},
+					"materialSurfaceType": "smooth",
+					"showing": true,
+					"locked": false,
+					"world": {
+						"x": 1392,
+						"y": 21,
+						"width": 504,
+						"height": 64,
+						"originX": 0,
+						"originY": 0,
 						"color": [
 							1,
 							1,

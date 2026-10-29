@@ -129,6 +129,7 @@ function Tick(runtime)
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
 	UpdateBoostBar(runtime);
+	CountEnemys(runtime);
 }
 
 // ===== Шкала ускорения на HUD =====
@@ -218,6 +219,16 @@ function SetEnemyAnimation(runtime, name)
 {
 	for (const enemy of runtime.objects.enemy.instances())
 		enemy.setAnimation(name);
+}
+
+//Подсчёт оставшихся машинок
+function CountEnemys(runtime)
+{
+	const label = runtime.objects.КоличествоМашинок?.getFirstInstance();
+	if (!label) return;
+
+	const counter = runtime.objects.enemy.getAllInstances().length;
+	label.text = "Осталось: " + counter + " охотников";
 }
 
 // ===== Враги: убегают или догоняют =====
