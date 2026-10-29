@@ -10,6 +10,12 @@ const SpeedMax = 600;     // скорость, при которой отдал�
 const ZoomSmooth = 4;     // плавность: больше = резче реакция
 let Player = null;
 
+const BoostMax = 5;       // запас ускорения, секунд
+const BoostFactor = 2;    // во сколько раз быстрее на Shift
+let BoostLeft = BoostMax; // сколько осталось
+let BoostLocked = false;  // true — запас кончился, ждём полного восстановления
+let BarWidth = 0;         // полная ширина шкалы
+
 let IsHunter = true;      // выбор в меню: true — охотник, false — миник
 
 // ===== Имена макетов =====
@@ -53,6 +59,9 @@ function StartGame(runtime)
 	Phase = 0;
 	TimeLeft = 30;
 	Invuln = 0;
+	BoostLeft = BoostMax;
+	BoostLocked = false;
+	BarWidth = runtime.objects.ШкалаУскорения?.getFirstInstance()?.width ?? 0;
 
 	for (const heart of runtime.objects.hearth.instances())
 		heart.setAnimation("full_hearth");
@@ -119,21 +128,44 @@ function Tick(runtime)
 	UpdateInvuln(runtime, Player);
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
+	UpdateBoostBar(runtime);
+}
+
+// ===== Шкала ускорения на HUD =====
+function UpdateBoostBar(runtime)
+{
+	const bar = runtime.objects.ШкалаУскорения?.getFirstInstance();
+	if (!bar) return;
+
+	bar.width = BarWidth * BoostLeft / BoostMax;
+	bar.colorRgb = BoostLocked ? [1, 0.3, 0.3] : [1, 1, 1];   // красная — ждём восстановления
 }
 
 // ===== Управление: WASD или стрелки =====
-function Controls(runtime, car)
+function Controls(runtime, car)	
 {
 	const key = runtime.keyboard;
 	const up    = key.isKeyDown("KeyW") || key.isKeyDown("ArrowUp");
 	const down  = key.isKeyDown("KeyS") || key.isKeyDown("ArrowDown");
 	const left  = key.isKeyDown("KeyA") || key.isKeyDown("ArrowLeft");
 	const right = key.isKeyDown("KeyD") || key.isKeyDown("ArrowRight");
+	const shift = key.isKeyDown("ShiftLeft") || key.isKeyDown("ShiftRight");
+
+	// ускорение: на Shift тратится, без Shift восстанавливается
+	const boost = shift && !BoostLocked;
+	BoostLeft += boost ? -runtime.dt : runtime.dt;
+	BoostLeft = Math.min(Math.max(BoostLeft, 0), BoostMax);
+	if (BoostLeft === 0) BoostLocked = true;           // кончилось — ждём до полного
+	if (BoostLeft === BoostMax) BoostLocked = false;
+	const speedFactor = boost ? BoostFactor : 1;
 
 	// машина — через поведение «Машина»
 	const drive = car.behaviors.Машина;
 	if (drive)
 	{
+		car.normalMaxSpeed ??= drive.maxSpeed;          // запоминаем обычную скорость
+		drive.maxSpeed = car.normalMaxSpeed * speedFactor;
+
 		if (up)    drive.simulateControl("up");
 		if (down)  drive.simulateControl("down");
 		if (left)  drive.simulateControl("left");
@@ -146,7 +178,7 @@ function Controls(runtime, car)
 	if (!bullet) return;
 
 	const TurnSpeed = 3;   // градусов за кадр
-	const MoveSpeed = 250;
+	const MoveSpeed = 250 * speedFactor;
 
 	if (left)  car.angle -= TurnSpeed * Math.PI / 180;
 	if (right) car.angle += TurnSpeed * Math.PI / 180;

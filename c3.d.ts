@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 10/15/2026 6:33:18 PM
+// 10/29/2026 9:04:29 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -60,8 +60,6 @@ interface IRuntimeObjects {
 }
 
 interface IGlobalVars extends VariableType {
-	/**  **/
-	["IsHunter"]: boolean
 }
 
 interface Blob {
