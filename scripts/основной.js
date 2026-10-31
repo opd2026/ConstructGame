@@ -1,5 +1,6 @@
 // ===== Переменные игры =====
-let HP = 3;          // жизни
+const HPMax = 3;     // жизни монстра
+let HP = HPMax;      // сколько жизней осталось
 let Phase = 0;       // 0 — ловим врагов, 1 — враги гонятся за нами, 2 — победа
 let TimeLeft = 30;   // секунд до смены фазы
 let Invuln = 0;      // секунд неуязвимости после удара
@@ -20,6 +21,18 @@ let IsHunter = true;      // выбор в меню: true — охотник, fa
 
 const WheelMaxTurn = 30;  // на сколько градусов поворачиваются колёса
 let WheelTurn = 0;        // текущий поворот колёс
+
+// ===== Таран =====
+const EnemyMaxHp = 100;   // здоровье охотника
+const RamMinSpeed = 150;  // таран срабатывает, если монстр быстрее этого (X)
+const RamDamage = 0.15;   // урон = скорость * RamDamage (350 → ~52, на Shift 700 → ~105)
+const RamPush = 1.5;      // сила отталкивания: скорость отлёта = скорость монстра * RamPush
+const RamCooldown = 0.5;  // секунд, пока одного и того же охотника нельзя таранить снова
+
+// ===== Полоски здоровья над машинами =====
+const HpBarWidth = 80;    // ширина полоски
+const HpBarHeight = 8;    // высота полоски
+const HpBarOffset = 60;   // на сколько выше центра машины
 
 // ===== Имена макетов =====
 const MENU_LAYOUT = "Меню";
@@ -58,7 +71,7 @@ function SelectRole(runtime, hunter)
 // ===== Начало игры =====
 function StartGame(runtime)
 {
-	HP = 3;
+	HP = HPMax;
 	Phase = 0;
 	TimeLeft = 30;
 	Invuln = 0;
@@ -66,11 +79,16 @@ function StartGame(runtime)
 	BoostLocked = false;
 	BarWidth = runtime.objects.ШкалаУскорения?.getFirstInstance()?.width ?? 0;
 
-	for (const heart of runtime.objects.hearth.instances())
-		heart.setAnimation("full_hearth");
-
 	for (const enemy of runtime.objects.enemy.instances())
+	{
 		enemy.setAnimation("Animation 1");
+		enemy.hp = EnemyMaxHp;
+		enemy.ramCooldown = 0;
+		enemy.pushX = 0;
+		enemy.pushY = 0;
+	}
+
+	CreateHealthBars(runtime);
 
 	// выбираем, кем управляет игрок
 	const enemies = runtime.objects.enemy.getAllInstances();
@@ -127,12 +145,101 @@ function Tick(runtime)
 	Controls(runtime, Player);
 	UpdateTimer(runtime);
 	MoveEnemies(runtime, car);
+	ApplyPush(runtime);
 	CheckHits(runtime, car);
 	UpdateInvuln(runtime, Player);
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
 	UpdateBoostBar(runtime);
+	UpdateHealthBars(runtime);
 	CountEnemys(runtime);
+}
+
+// ===== Полоски здоровья =====
+// На макете лежит один спрайт «ПолоскаЗдоровья» — образец.
+// Делаем из него по полоске на каждую машину, а сам образец убираем.
+function CreateHealthBars(runtime)
+{
+	const Bar = runtime.objects.ПолоскаЗдоровья;
+	if (!Bar) return;
+
+	const sample = Bar.getFirstInstance();
+	if (!sample) return;
+
+	const cars = [runtime.objects.car.getFirstInstance(), ...runtime.objects.enemy.instances()];
+	for (const car of cars)
+	{
+		if (!car) continue;
+		const bar = Bar.createInstance(car.layer.name, car.x, car.y);
+		bar.height = HpBarHeight;
+		bar.owner = car;
+	}
+
+	sample.destroy();
+}
+
+function UpdateHealthBars(runtime)
+{
+	const Bar = runtime.objects.ПолоскаЗдоровья;
+	if (!Bar) return;
+
+	for (const bar of Bar.instances())
+	{
+		const car = bar.owner;
+		if (!car) continue;               // образец, ещё не удалён
+
+		// машина уничтожена — полоска тоже
+		if (car.isDestroyed)
+		{
+			bar.destroy();
+			continue;
+		}
+
+		// у монстра — жизни HP, у охотника — его hp
+		const part = (car === runtime.objects.car.getFirstInstance())
+			? HP / HPMax
+			: car.hp / EnemyMaxHp;
+
+		// полоска убывает слева направо и висит над машиной
+		const left = car.x - HpBarWidth / 2;
+		bar.width = HpBarWidth * Math.max(part, 0);
+		bar.x = left + bar.width / 2;
+		bar.y = car.y - HpBarOffset;
+
+		// зелёная → жёлтая → красная
+		bar.colorRgb = [Math.min(1, 2 - 2 * part), Math.min(1, 2 * part), 0];
+	}
+}
+
+// ===== Таран: охотника отбрасывает =====
+function ApplyPush(runtime)
+{
+	for (const enemy of runtime.objects.enemy.instances())
+	{
+		if (!enemy.pushX && !enemy.pushY) continue;
+
+		enemy.x += enemy.pushX * runtime.dt;
+		enemy.y += enemy.pushY * runtime.dt;
+
+		// отлёт быстро затухает
+		const fade = Math.exp(-5 * runtime.dt);
+		enemy.pushX *= fade;
+		enemy.pushY *= fade;
+		if (Math.hypot(enemy.pushX, enemy.pushY) < 5) enemy.pushX = enemy.pushY = 0;
+	}
+}
+
+function Ram(runtime, car, enemy, speed)
+{
+	enemy.hp -= speed * RamDamage;
+	enemy.ramCooldown = RamCooldown;
+
+	// отталкиваем от монстра
+	const angle = AngleFromTo(car, enemy);
+	enemy.pushX = Math.cos(angle) * speed * RamPush;
+	enemy.pushY = Math.sin(angle) * speed * RamPush;
+
+	if (enemy.hp <= 0) enemy.destroy();
 }
 
 // ===== Шкала ускорения на HUD =====
@@ -285,13 +392,17 @@ function UpdateWheels(runtime, car, left, right)
 // ===== Столкновения =====
 function CheckHits(runtime, car)
 {
+	const speed = Math.abs(car.behaviors.Машина?.speed ?? 0);
+
 	for (const enemy of runtime.objects.enemy.instances())
 	{
+		enemy.ramCooldown = Math.max(0, (enemy.ramCooldown ?? 0) - runtime.dt);
+
 		if (!car.testOverlap(enemy)) continue;
 
-		if (Phase === 0)
+		if (speed > RamMinSpeed)
 		{
-			enemy.destroy();          // поймали врага
+			if (enemy.ramCooldown <= 0) Ram(runtime, car, enemy, speed);   // таран!
 		}
 		else if (Phase === 1 && Invuln <= 0)
 		{
@@ -304,10 +415,6 @@ function LoseLife(runtime)
 {
 	HP -= 1;
 	Invuln = 1.5;
-
-	// гасим лишние сердечки
-	for (const heart of runtime.objects.hearth.instances())
-		if (heart.instVars.num > HP) heart.setAnimation("none_hearth");
 
 	// жизни кончились — заново
 	if (HP <= 0) runtime.goToLayout(runtime.layout.name);
