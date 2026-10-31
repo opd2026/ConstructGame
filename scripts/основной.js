@@ -18,6 +18,9 @@ let BarWidth = 0;         // полная ширина шкалы
 
 let IsHunter = true;      // выбор в меню: true — охотник, false — миник
 
+const WheelMaxTurn = 30;  // на сколько градусов поворачиваются колёса
+let WheelTurn = 0;        // текущий поворот колёс
+
 // ===== Имена макетов =====
 const MENU_LAYOUT = "Меню";
 const GAME_LAYOUT = "Макет 1";
@@ -171,6 +174,7 @@ function Controls(runtime, car)
 		if (down)  drive.simulateControl("down");
 		if (left)  drive.simulateControl("left");
 		if (right) drive.simulateControl("right");
+		UpdateWheels(runtime, car, left, right);
 		return;
 	}
 
@@ -262,6 +266,20 @@ function MoveEnemies(runtime, car)
 
 		bullet.angleOfMotion = enemy.angle;   // едут туда, куда смотрят
 	}
+}
+
+// ===== Колёса: поворачиваются, когда рулим =====
+function UpdateWheels(runtime, car, left, right)
+{
+	let target = 0;
+	if (left)  target = -WheelMaxTurn;
+	if (right) target =  WheelMaxTurn;
+
+	// плавно доворачиваем колёса к нужному углу
+	WheelTurn += (target - WheelTurn) * Math.min(1, runtime.dt * 10);
+
+	for (const wheel of runtime.objects.Колесо?.instances() ?? [])
+		wheel.angle = car.angle + WheelTurn * Math.PI / 180;
 }
 
 // ===== Столкновения =====
