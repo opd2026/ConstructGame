@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 10/31/2026 6:37:57 PM
+// 10/31/2026 9:16:42 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -48,6 +48,7 @@ interface IRuntimeObjects {
 	['ТайловыйФон']: IObjectClass<IТайловыйФон>;
 	['Спрайт2']: IObjectClass<IСпрайт2>;
 	['Спрайт']: IObjectClass<IСпрайт>;
+	['ПолоскаЗдоровья']: IObjectClass<IПолоскаЗдоровья>;
 	['Мышь']: IObjectClass<IМышь>;
 	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
 	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
@@ -250,6 +251,17 @@ interface IСпрайтBehaviors extends Record<string, IBehaviorInstance> {
 interface IСпрайт extends ISpriteInstance {
 	instVars: IСпрайтVars;
 	behaviors: IСпрайтBehaviors;
+}
+
+interface IПолоскаЗдоровьяVars extends VariableType {
+	
+}
+interface IПолоскаЗдоровьяBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IПолоскаЗдоровья extends ISpriteInstance {
+	instVars: IПолоскаЗдоровьяVars;
+	behaviors: IПолоскаЗдоровьяBehaviors;
 }
 
 interface IМышьVars extends VariableType {
