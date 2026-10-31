@@ -1,0 +1,60 @@
+{
+	"name": "КолесоСтатик",
+	"plugin-id": "Sprite",
+	"sid": 994599131190239,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": [],
+	"animations": {
+		"items": [
+			{
+				"frames": [
+					{
+						"width": 1166,
+						"height": 642,
+						"originX": 0.4811320754716981,
+						"originY": 0.5124610591900312,
+						"originalSource": "",
+						"exportFormat": "lossless",
+						"exportQuality": 0.8,
+						"fileType": "image/png",
+						"imageSpriteId": 6260924,
+						"collisionPoly": {
+							"points": [
+								0.6801029159519726,
+								0.014018691588785047,
+								0.8790737564322469,
+								0.05763239875389408,
+								0.9854202401372213,
+								0.2632398753894081,
+								0.9991423670668954,
+								0.6806853582554517,
+								0.9236706689536878,
+								0.9610591900311527,
+								0.0008576329331046312,
+								0.6806853582554517,
+								0.0008576329331046312,
+								0.40031152647975077,
+								0.11406518010291596,
+								0.05763239875389408
+							]
+						},
+						"useCollisionPoly": true,
+						"duration": 1,
+						"tag": ""
+					}
+				],
+				"sid": 708328986498795,
+				"name": "Animation 1",
+				"isLooping": false,
+				"isPingPong": false,
+				"repeatCount": 1,
+				"repeatTo": 0,
+				"speed": 5
+			}
+		],
+		"subfolders": []
+	}
+}
