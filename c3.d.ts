@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 10/15/2026 6:33:18 PM
+// 10/31/2026 9:16:42 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -42,12 +42,17 @@ declare var IRuntime:  { new(): IRuntime };
 type VariableType = Record<string, string | boolean | number | null | undefined>;
 
 interface IRuntimeObjects {
+	['ШкалаУскорения']: IObjectClass<IШкалаУскорения>;
 	['Таймер']: IObjectClass<IТаймер>;
 	['ТайловыйФон2']: IObjectClass<IТайловыйФон2>;
 	['ТайловыйФон']: IObjectClass<IТайловыйФон>;
 	['Спрайт2']: IObjectClass<IСпрайт2>;
 	['Спрайт']: IObjectClass<IСпрайт>;
+	['ПолоскаЗдоровья']: IObjectClass<IПолоскаЗдоровья>;
 	['Мышь']: IObjectClass<IМышь>;
+	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
+	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
+	['Колесо']: IObjectClass<IКолесо>;
 	['КнопкаОхотника']: IObjectClass<IКнопкаОхотника>;
 	['КнопкаМиника']: IObjectClass<IКнопкаМиника>;
 	['Клавиатура']: IObjectClass<IКлавиатура>;
@@ -60,8 +65,6 @@ interface IRuntimeObjects {
 }
 
 interface IGlobalVars extends VariableType {
-	/**  **/
-	["IsHunter"]: boolean
 }
 
 interface Blob {
@@ -184,6 +187,17 @@ interface IObjectClass<T = IInstance> {
 }
 declare var IObjectClass: { new(): IObjectClass };
 
+interface IШкалаУскоренияVars extends VariableType {
+	
+}
+interface IШкалаУскоренияBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IШкалаУскорения extends ISpriteInstance {
+	instVars: IШкалаУскоренияVars;
+	behaviors: IШкалаУскоренияBehaviors;
+}
+
 interface IТаймерVars extends VariableType {
 	
 }
@@ -239,6 +253,17 @@ interface IСпрайт extends ISpriteInstance {
 	behaviors: IСпрайтBehaviors;
 }
 
+interface IПолоскаЗдоровьяVars extends VariableType {
+	
+}
+interface IПолоскаЗдоровьяBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IПолоскаЗдоровья extends ISpriteInstance {
+	instVars: IПолоскаЗдоровьяVars;
+	behaviors: IПолоскаЗдоровьяBehaviors;
+}
+
 interface IМышьVars extends VariableType {
 	
 }
@@ -248,6 +273,39 @@ interface IМышьBehaviors extends Record<string, IBehaviorInstance> {
 interface IМышь extends IMouseObjectType {
 	instVars: IМышьVars;
 	behaviors: IМышьBehaviors;
+}
+
+interface IКоличествоМашинокVars extends VariableType {
+	
+}
+interface IКоличествоМашинокBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКоличествоМашинок extends ITextInstance {
+	instVars: IКоличествоМашинокVars;
+	behaviors: IКоличествоМашинокBehaviors;
+}
+
+interface IКолесоСтатикVars extends VariableType {
+	
+}
+interface IКолесоСтатикBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесоСтатик extends ISpriteInstance {
+	instVars: IКолесоСтатикVars;
+	behaviors: IКолесоСтатикBehaviors;
+}
+
+interface IКолесоVars extends VariableType {
+	
+}
+interface IКолесоBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесо extends ISpriteInstance {
+	instVars: IКолесоVars;
+	behaviors: IКолесоBehaviors;
 }
 
 interface IКнопкаОхотникаVars extends VariableType {
