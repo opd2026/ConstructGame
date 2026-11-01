@@ -1,3 +1,7 @@
 *.uistate.json
 uistate
 ts-defs
+.DS_Store
+Thumbs.db
+*.c3p
+export/
