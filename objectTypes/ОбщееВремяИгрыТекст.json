@@ -1,0 +1,10 @@
+{
+	"name": "ОбщееВремяИгрыТекст",
+	"plugin-id": "Text",
+	"sid": 651256527408133,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": []
+}
