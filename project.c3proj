@@ -1,6 +1,7 @@
 {
 	"projectFormatVersion": 1,
 	"savedWithRelease": 50603,
+	"savedWithRelease": 50603,
 	"name": "Новый проект",
 	"runtime": "c3",
 	"useWorker": "auto",
@@ -93,6 +94,8 @@
 			"Спрайт",
 			"ТайловыйФон2",
 			"Спрайт2",
+			"Hunter",
+			"LaserBolt",
 			"ШкалаУскорения",
 			"КоличествоМашинок",
 			"Колесо",
