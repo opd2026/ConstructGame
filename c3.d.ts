@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 10/31/2026 9:16:42 PM
+// 11/1/2026 10:24:11 AM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -49,12 +49,18 @@ interface IRuntimeObjects {
 	['Спрайт2']: IObjectClass<IСпрайт2>;
 	['Спрайт']: IObjectClass<IСпрайт>;
 	['ПолоскаЗдоровья']: IObjectClass<IПолоскаЗдоровья>;
+	['ПобедныйТекст']: IObjectClass<IПобедныйТекст>;
+	['ОкноФон']: IObjectClass<IОкноФон>;
+	['ОкноТекст']: IObjectClass<IОкноТекст>;
 	['Мышь']: IObjectClass<IМышь>;
 	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
 	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
 	['Колесо']: IObjectClass<IКолесо>;
 	['КнопкаОхотника']: IObjectClass<IКнопкаОхотника>;
+	['КнопкаОкна']: IObjectClass<IКнопкаОкна>;
 	['КнопкаМиника']: IObjectClass<IКнопкаМиника>;
+	['КнопкаМеню']: IObjectClass<IКнопкаМеню>;
+	['КнопкаЗакрыть']: IObjectClass<IКнопкаЗакрыть>;
 	['Клавиатура']: IObjectClass<IКлавиатура>;
 	['wall']: IObjectClass<Iwall>;
 	['hearth']: IObjectClass<Ihearth>;
@@ -264,6 +270,39 @@ interface IПолоскаЗдоровья extends ISpriteInstance {
 	behaviors: IПолоскаЗдоровьяBehaviors;
 }
 
+interface IПобедныйТекстVars extends VariableType {
+	
+}
+interface IПобедныйТекстBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IПобедныйТекст extends ITextInstance {
+	instVars: IПобедныйТекстVars;
+	behaviors: IПобедныйТекстBehaviors;
+}
+
+interface IОкноФонVars extends VariableType {
+	
+}
+interface IОкноФонBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IОкноФон extends ISpriteInstance {
+	instVars: IОкноФонVars;
+	behaviors: IОкноФонBehaviors;
+}
+
+interface IОкноТекстVars extends VariableType {
+	
+}
+interface IОкноТекстBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IОкноТекст extends ITextInstance {
+	instVars: IОкноТекстVars;
+	behaviors: IОкноТекстBehaviors;
+}
+
 interface IМышьVars extends VariableType {
 	
 }
@@ -319,6 +358,17 @@ interface IКнопкаОхотника extends IButtonInstance {
 	behaviors: IКнопкаОхотникаBehaviors;
 }
 
+interface IКнопкаОкнаVars extends VariableType {
+	
+}
+interface IКнопкаОкнаBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКнопкаОкна extends IButtonInstance {
+	instVars: IКнопкаОкнаVars;
+	behaviors: IКнопкаОкнаBehaviors;
+}
+
 interface IКнопкаМиникаVars extends VariableType {
 	
 }
@@ -328,6 +378,28 @@ interface IКнопкаМиникаBehaviors extends Record<string, IBehaviorIns
 interface IКнопкаМиника extends IButtonInstance {
 	instVars: IКнопкаМиникаVars;
 	behaviors: IКнопкаМиникаBehaviors;
+}
+
+interface IКнопкаМенюVars extends VariableType {
+	
+}
+interface IКнопкаМенюBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКнопкаМеню extends IButtonInstance {
+	instVars: IКнопкаМенюVars;
+	behaviors: IКнопкаМенюBehaviors;
+}
+
+interface IКнопкаЗакрытьVars extends VariableType {
+	
+}
+interface IКнопкаЗакрытьBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКнопкаЗакрыть extends IButtonInstance {
+	instVars: IКнопкаЗакрытьVars;
+	behaviors: IКнопкаЗакрытьBehaviors;
 }
 
 interface IКлавиатураVars extends VariableType {
