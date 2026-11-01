@@ -1,0 +1,10 @@
+{
+	"name": "ПобедныйТекст",
+	"plugin-id": "Text",
+	"sid": 102094224230323,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": []
+}
