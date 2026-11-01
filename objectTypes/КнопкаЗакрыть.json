@@ -1,0 +1,9 @@
+{
+	"name": "КнопкаЗакрыть",
+	"plugin-id": "Button",
+	"sid": 369243114339373,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": []
+}

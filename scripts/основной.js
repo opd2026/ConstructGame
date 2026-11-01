@@ -99,7 +99,47 @@ function StartGame(runtime)
 
 	// сразу приближаемся к игроку, без «наезда» камеры
 	ResetCamera(runtime, Player);
+
+	SetupPopup(runtime);
 }
+
+// ===== Всплывающее окно (лежит на HUD) =====
+// объекты, из которых состоит окно — впиши сюда свои имена
+const PopupObjects = ["ОкноФон", "ОкноТекст", "КнопкаЗакрыть", "КнопкаМеню"];
+
+function SetupPopup(runtime)
+{
+	const openBtn  = runtime.objects.КнопкаОкна?.getFirstInstance();
+	const closeBtn = runtime.objects.КнопкаЗакрыть?.getFirstInstance();
+	const mainMenuBtn = runtime.objects.КнопкаМеню?.getFirstInstance();
+
+	openBtn?.addEventListener("click",  () => ShowPopup(runtime, true));
+	closeBtn?.addEventListener("click", () => ShowPopup(runtime, false));
+	mainMenuBtn?.addEventListener("click", () => {runtime.goToLayout(MENU_LAYOUT)})
+
+	ShowPopup(runtime, false);   // при старте окно скрыто
+}
+
+function ShowPopup(runtime, show, victory = false)
+{
+	const victoryTxt = runtime.objects.ПобедныйТекст?.getFirstInstance();
+
+	for (const name of PopupObjects)
+		for (const inst of runtime.objects[name]?.instances() ?? [])
+			inst.isVisible = show;
+
+	if(victory){
+		const closeBtn = runtime.objects.КнопкаЗакрыть?.getFirstInstance();
+		victoryTxt.isVisible = true;
+		closeBtn.isVisible = false;
+	}else{
+		victoryTxt.isVisible = false;
+	}
+
+	// пауза: 0 — время стоит, 1 — идёт
+	runtime.timeScale = show ? 0 : 1;
+}
+
 // ===== Камера: следим за машиной, на скорости отдаляемся =====
 function UpdateCamera(runtime, car)
 {
@@ -443,6 +483,7 @@ function CheckWin(runtime)
 	{
 		Phase = 2;
 		runtime.objects.Таймер.getFirstInstance().text = "Победа!";
+		ShowPopup(runtime, true, true);
 	}
 }
 
