@@ -10,6 +10,8 @@ let CamZoom = ZoomStart;  // текущий масштаб камеры
 const SpeedMax = 600;     // скорость, при которой отдаление максимальное
 const ZoomSmooth = 4;     // плавность: больше = резче реакция
 let Player = null;
+let Minutes = 5;		//Общее количество минут, лимит на игру
+let GameTimeLeft = Minutes * 60;	// сколько секунд осталось до конца игры
 
 const BoostMax = 5;       // запас ускорения, секунд
 const BoostFactor = 2;    // во сколько раз быстрее на Shift
@@ -74,6 +76,7 @@ function StartGame(runtime)
 	HP = HPMax;
 	Phase = 0;
 	TimeLeft = 30;
+	GameTimeLeft = Minutes * 60;
 	Invuln = 0;
 	BoostLeft = BoostMax;
 	BoostLocked = false;
@@ -99,7 +102,51 @@ function StartGame(runtime)
 
 	// сразу приближаемся к игроку, без «наезда» камеры
 	ResetCamera(runtime, Player);
+
+	SetupPopup(runtime);
 }
+
+// ===== Всплывающее окно (лежит на HUD) =====
+// объекты, из которых состоит окно — впиши сюда свои имена
+const PopupObjects = ["ОкноФон", "ОкноТекст", "КнопкаЗакрыть", "КнопкаМеню"];
+
+function SetupPopup(runtime)
+{
+	const openBtn  = runtime.objects.КнопкаОкна?.getFirstInstance();
+	const closeBtn = runtime.objects.КнопкаЗакрыть?.getFirstInstance();
+	const mainMenuBtn = runtime.objects.КнопкаМеню?.getFirstInstance();
+
+	openBtn?.addEventListener("click",  () => ShowPopup(runtime, true));
+	closeBtn?.addEventListener("click", () => ShowPopup(runtime, false));
+	mainMenuBtn?.addEventListener("click", () => {runtime.goToLayout(MENU_LAYOUT)})
+
+	ShowPopup(runtime, false);   // при старте окно скрыто
+}
+
+function ShowPopup(runtime, show, victory = false)
+{
+	const victoryTxt = runtime.objects.ПобедныйТекст?.getFirstInstance();
+	const closeBtn = runtime.objects.КнопкаЗакрыть?.getFirstInstance();
+
+	for (const name of PopupObjects)
+		for (const inst of runtime.objects[name]?.instances() ?? [])
+			inst.isVisible = show;
+
+	if(victory){
+		victoryTxt.isVisible = true;
+		closeBtn.isVisible = false;
+	}else if(HP <= 0 || GameTimeLeft <= 0){
+		victoryTxt.text = (HP <= 0) ? "Прикинь я проиграл..." : "Время вышло!";
+		closeBtn.isVisible = false;
+		victoryTxt.isVisible = true;
+	}else{
+		victoryTxt.isVisible = false;
+	}
+
+	// пауза: 0 — время стоит, 1 — идёт
+	runtime.timeScale = show ? 0 : 1;
+}
+
 // ===== Камера: следим за машиной, на скорости отдаляемся =====
 function UpdateCamera(runtime, car)
 {
@@ -144,6 +191,7 @@ function Tick(runtime)
 
 	Controls(runtime, Player);
 	UpdateTimer(runtime);
+	TimerToEndThisGame(runtime);
 	MoveEnemies(runtime, car);
 	ApplyPush(runtime);
 	CheckHits(runtime, car);
@@ -176,6 +224,26 @@ function CreateHealthBars(runtime)
 	}
 
 	sample.destroy();
+}
+
+// ===== Общий таймер игры: кончился — проигрыш =====
+function TimerToEndThisGame(runtime)
+{
+	// уже победили или время уже вышло — больше не считаем
+	if (Phase === 2 || GameTimeLeft <= 0) return;
+
+	GameTimeLeft -= runtime.dt;
+	if (GameTimeLeft < 0) GameTimeLeft = 0;
+
+	// показываем в виде 4:05
+	const total = Math.ceil(GameTimeLeft);
+	const min = Math.floor(total / 60);
+	const sec = total % 60;
+	const label = runtime.objects.ОбщееВремяИгрыТекст?.getFirstInstance();
+	if (label) label.text = "Осталось: " + min + ":" + String(sec).padStart(2, "0");
+
+	if (GameTimeLeft === 0)
+		ShowPopup(runtime, true);   // меню проигрыша
 }
 
 function UpdateHealthBars(runtime)
@@ -417,7 +485,9 @@ function LoseLife(runtime)
 	Invuln = 1.5;
 
 	// жизни кончились — заново
-	if (HP <= 0) runtime.goToLayout(runtime.layout.name);
+	if (HP <= 0){
+		ShowPopup(runtime, true, false);
+	};
 }
 
 // ===== Неуязвимость: машина полупрозрачная =====
@@ -443,6 +513,7 @@ function CheckWin(runtime)
 	{
 		Phase = 2;
 		runtime.objects.Таймер.getFirstInstance().text = "Победа!";
+		ShowPopup(runtime, true, true);
 	}
 }
 
