@@ -1,7 +1,7 @@
 {
-	"name": "КолесоEnemy",
+	"name": "КолесоВрагаСтатик",
 	"plugin-id": "Sprite",
-	"sid": 794251292620685,
+	"sid": 351941514055584,
 	"isGlobal": false,
 	"editorNewInstanceIsReplica": true,
 	"instanceVariables": [],
@@ -20,7 +20,7 @@
 						"exportFormat": "lossless",
 						"exportQuality": 0.8,
 						"fileType": "image/png",
-						"imageSpriteId": 8597285,
+						"imageSpriteId": 3190863,
 						"collisionPoly": {
 							"points": [
 								0.4788235294117647,
@@ -46,7 +46,7 @@
 						"tag": ""
 					}
 				],
-				"sid": 486523356923555,
+				"sid": 380813262886448,
 				"name": "Animation 1",
 				"isLooping": false,
 				"isPingPong": false,

@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 11/8/2026 12:20:52 PM
+// 11/8/2026 6:37:09 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -56,6 +56,8 @@ interface IRuntimeObjects {
 	['Мышь']: IObjectClass<IМышь>;
 	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
 	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
+	['КолесоВрагаСтатик']: IObjectClass<IКолесоВрагаСтатик>;
+	['КолесоВрага']: IObjectClass<IКолесоВрага>;
 	['Колесо']: IObjectClass<IКолесо>;
 	['КнопкаОхотника']: IObjectClass<IКнопкаОхотника>;
 	['КнопкаОкна']: IObjectClass<IКнопкаОкна>;
@@ -64,6 +66,7 @@ interface IRuntimeObjects {
 	['КнопкаЗакрыть']: IObjectClass<IКнопкаЗакрыть>;
 	['Клавиатура']: IObjectClass<IКлавиатура>;
 	['wall']: IObjectClass<Iwall>;
+	['railgun']: IObjectClass<Irailgun>;
 	['LaserBolt']: IObjectClass<ILaserBolt>;
 	['hearth']: IObjectClass<Ihearth>;
 	['enemy']: IObjectClass<Ienemy>;
@@ -349,6 +352,28 @@ interface IКолесоСтатик extends ISpriteInstance {
 	behaviors: IКолесоСтатикBehaviors;
 }
 
+interface IКолесоВрагаСтатикVars extends VariableType {
+	
+}
+interface IКолесоВрагаСтатикBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесоВрагаСтатик extends ISpriteInstance {
+	instVars: IКолесоВрагаСтатикVars;
+	behaviors: IКолесоВрагаСтатикBehaviors;
+}
+
+interface IКолесоВрагаVars extends VariableType {
+	
+}
+interface IКолесоВрагаBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесоВрага extends ISpriteInstance {
+	instVars: IКолесоВрагаVars;
+	behaviors: IКолесоВрагаBehaviors;
+}
+
 interface IКолесоVars extends VariableType {
 	
 }
@@ -435,6 +460,17 @@ interface IwallBehaviors extends Record<string, IBehaviorInstance> {
 interface Iwall extends IWorldInstance {
 	instVars: IwallVars;
 	behaviors: IwallBehaviors;
+}
+
+interface IrailgunVars extends VariableType {
+	
+}
+interface IrailgunBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface Irailgun extends ISpriteInstance {
+	instVars: IrailgunVars;
+	behaviors: IrailgunBehaviors;
 }
 
 interface ILaserBoltVars extends VariableType {
