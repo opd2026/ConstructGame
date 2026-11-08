@@ -1,0 +1,60 @@
+{
+	"name": "КолесоEnemy",
+	"plugin-id": "Sprite",
+	"sid": 794251292620685,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": [],
+	"animations": {
+		"items": [
+			{
+				"frames": [
+					{
+						"width": 1700,
+						"height": 454,
+						"originX": 0.47705882352941176,
+						"originY": 0.42731277533039647,
+						"originalSource": "",
+						"exportFormat": "lossless",
+						"exportQuality": 0.8,
+						"fileType": "image/png",
+						"imageSpriteId": 8597285,
+						"collisionPoly": {
+							"points": [
+								0.4788235294117647,
+								0.011013215859030838,
+								0.9870588235294118,
+								0.23788546255506607,
+								0.9447058823529412,
+								0.8986784140969163,
+								0.48470588235294115,
+								0.9911894273127754,
+								0.0888235294117647,
+								0.9074889867841409,
+								0.011764705882352941,
+								0.6850220264317181,
+								0.027058823529411764,
+								0.16299559471365638,
+								0.07294117647058823,
+								0.08149779735682819
+							]
+						},
+						"useCollisionPoly": true,
+						"duration": 1,
+						"tag": ""
+					}
+				],
+				"sid": 486523356923555,
+				"name": "Animation 1",
+				"isLooping": false,
+				"isPingPong": false,
+				"repeatCount": 1,
+				"repeatTo": 0,
+				"speed": 5
+			}
+		],
+		"subfolders": []
+	}
+}

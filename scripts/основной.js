@@ -98,6 +98,7 @@ function StartGame(runtime)
 
 	CreateGuns(runtime);          // прикрепляем рельсотрон к каждому охотнику
 	CreateHealthBars(runtime);
+	CreateEnemyWheels(runtime);
 
 	// выбираем, кем управляет игрок
 	const enemies = runtime.objects.enemy.getAllInstances();
@@ -198,6 +199,7 @@ function Tick(runtime)
 	Controls(runtime, Player);
 	TimerToEndThisGame(runtime);
 	MoveEnemies(runtime, car);
+	UpdateEnemyWheels(runtime);
 	ApplyPush(runtime);
 	CheckHits(runtime, car);
 	TickHunters(runtime);    // ИИ охотников и полёт лучей
@@ -430,6 +432,81 @@ function UpdateWheels(runtime, car, left, right)
 
 	for (const wheel of runtime.objects.Колесо?.instances() ?? [])
 		wheel.angle = car.angle + WheelTurn * Math.PI / 180;
+}
+
+// ===== Колёса охотников =====
+// На макете ставишь колёса «КолесоВрага» на ОДНОГО охотника (как на машине).
+// В начале раунда код запоминает, где они стоят, и даёт такие же колёса каждому охотнику.
+
+function CreateEnemyWheels(runtime)
+{
+	const Wheel = runtime.objects.КолесоВрага;
+	if (!Wheel) return;
+
+	// запоминаем положение образцов относительно ближайшего охотника и убираем их
+	const places = [];
+	for (const sample of Wheel.getAllInstances())
+	{
+		let owner = null, best = Infinity;
+		for (const e of runtime.objects.enemy.instances())
+		{
+			const d = Distance(sample, e);
+			if (d < best) { best = d; owner = e; }
+		}
+		if (owner)
+		{
+			// сдвиг колеса переводим в систему координат машины: x — вперёд, y — вбок
+			const dx = sample.x - owner.x, dy = sample.y - owner.y;
+			const c = Math.cos(owner.angle), s = Math.sin(owner.angle);
+			places.push({ x: dx * c + dy * s, y: -dx * s + dy * c, w: sample.width, h: sample.height });
+		}
+		sample.destroy();
+	}
+
+	// каждому охотнику — такие же колёса, прикреплённые к нему
+	for (const enemy of runtime.objects.enemy.instances())
+	{
+		enemy.wheels = [];
+		enemy.wheelTurn = 0;
+		enemy.prevAngle = enemy.angle;
+
+		const c = Math.cos(enemy.angle), s = Math.sin(enemy.angle);
+		for (const p of places)
+		{
+			const wheel = Wheel.createInstance(enemy.layer.name,
+				enemy.x + p.x * c - p.y * s,
+				enemy.y + p.x * s + p.y * c);
+			wheel.width = p.w;
+			wheel.height = p.h;
+			wheel.angle = enemy.angle;
+			wheel.moveAdjacentToInstance?.(enemy, false);   // под кузов
+
+			enemy.addChild(wheel, { transformX: true, transformY: true, transformAngle: true, destroyWithParent: true });
+			enemy.wheels.push(wheel);
+		}
+	}
+}
+
+// колёса охотника поворачиваются в ту сторону, куда он сейчас разворачивается
+function UpdateEnemyWheels(runtime)
+{
+	if (runtime.dt <= 0) return;   // пауза
+
+	for (const enemy of runtime.objects.enemy.instances())
+	{
+		if (!enemy.wheels) continue;
+
+		// на сколько охотник повернулся за кадр (TurnTo крутит не больше 5° за кадр)
+		const diff = Math.atan2(Math.sin(enemy.angle - enemy.prevAngle), Math.cos(enemy.angle - enemy.prevAngle));
+		enemy.prevAngle = enemy.angle;
+		const steer = Math.max(-1, Math.min(1, diff / (5 * Math.PI / 180)));   // -1 влево … 1 вправо
+
+		// плавно доворачиваем колёса, как у машины
+		enemy.wheelTurn += (steer * WheelMaxTurn - enemy.wheelTurn) * Math.min(1, runtime.dt * 10);
+
+		for (const wheel of enemy.wheels)
+			wheel.angle = enemy.angle + enemy.wheelTurn * Math.PI / 180;
+	}
 }
 
 // ===== Столкновения =====
