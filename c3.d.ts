@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 11/1/2026 10:24:11 AM
+// 11/8/2026 6:37:09 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -52,9 +52,12 @@ interface IRuntimeObjects {
 	['ПобедныйТекст']: IObjectClass<IПобедныйТекст>;
 	['ОкноФон']: IObjectClass<IОкноФон>;
 	['ОкноТекст']: IObjectClass<IОкноТекст>;
+	['ОбщееВремяИгрыТекст']: IObjectClass<IОбщееВремяИгрыТекст>;
 	['Мышь']: IObjectClass<IМышь>;
 	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
 	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
+	['КолесоВрагаСтатик']: IObjectClass<IКолесоВрагаСтатик>;
+	['КолесоВрага']: IObjectClass<IКолесоВрага>;
 	['Колесо']: IObjectClass<IКолесо>;
 	['КнопкаОхотника']: IObjectClass<IКнопкаОхотника>;
 	['КнопкаОкна']: IObjectClass<IКнопкаОкна>;
@@ -63,6 +66,8 @@ interface IRuntimeObjects {
 	['КнопкаЗакрыть']: IObjectClass<IКнопкаЗакрыть>;
 	['Клавиатура']: IObjectClass<IКлавиатура>;
 	['wall']: IObjectClass<Iwall>;
+	['railgun']: IObjectClass<Irailgun>;
+	['LaserBolt']: IObjectClass<ILaserBolt>;
 	['hearth']: IObjectClass<Ihearth>;
 	['enemy']: IObjectClass<Ienemy>;
 	['car']: IObjectClass<Icar>;
@@ -303,6 +308,17 @@ interface IОкноТекст extends ITextInstance {
 	behaviors: IОкноТекстBehaviors;
 }
 
+interface IОбщееВремяИгрыТекстVars extends VariableType {
+	
+}
+interface IОбщееВремяИгрыТекстBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IОбщееВремяИгрыТекст extends ITextInstance {
+	instVars: IОбщееВремяИгрыТекстVars;
+	behaviors: IОбщееВремяИгрыТекстBehaviors;
+}
+
 interface IМышьVars extends VariableType {
 	
 }
@@ -334,6 +350,28 @@ interface IКолесоСтатикBehaviors extends Record<string, IBehaviorIns
 interface IКолесоСтатик extends ISpriteInstance {
 	instVars: IКолесоСтатикVars;
 	behaviors: IКолесоСтатикBehaviors;
+}
+
+interface IКолесоВрагаСтатикVars extends VariableType {
+	
+}
+interface IКолесоВрагаСтатикBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесоВрагаСтатик extends ISpriteInstance {
+	instVars: IКолесоВрагаСтатикVars;
+	behaviors: IКолесоВрагаСтатикBehaviors;
+}
+
+interface IКолесоВрагаVars extends VariableType {
+	
+}
+interface IКолесоВрагаBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IКолесоВрага extends ISpriteInstance {
+	instVars: IКолесоВрагаVars;
+	behaviors: IКолесоВрагаBehaviors;
 }
 
 interface IКолесоVars extends VariableType {
@@ -422,6 +460,28 @@ interface IwallBehaviors extends Record<string, IBehaviorInstance> {
 interface Iwall extends IWorldInstance {
 	instVars: IwallVars;
 	behaviors: IwallBehaviors;
+}
+
+interface IrailgunVars extends VariableType {
+	
+}
+interface IrailgunBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface Irailgun extends ISpriteInstance {
+	instVars: IrailgunVars;
+	behaviors: IrailgunBehaviors;
+}
+
+interface ILaserBoltVars extends VariableType {
+	
+}
+interface ILaserBoltBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface ILaserBolt extends ISpriteInstance {
+	instVars: ILaserBoltVars;
+	behaviors: ILaserBoltBehaviors;
 }
 
 interface IhearthVars extends VariableType {

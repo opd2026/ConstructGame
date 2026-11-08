@@ -18,10 +18,10 @@
 			{
 				"frames": [
 					{
-						"width": 800,
-						"height": 800,
-						"originX": 0.5,
-						"originY": 0.5,
+						"width": 1755,
+						"height": 1097,
+						"originX": 0.5088319088319089,
+						"originY": 0.5132178669097539,
 						"originalSource": "",
 						"exportFormat": "lossless",
 						"exportQuality": 0.8,
@@ -29,20 +29,20 @@
 						"imageSpriteId": 7957146,
 						"collisionPoly": {
 							"points": [
-								0.94125,
-								0.4625,
-								0.99625,
-								0.56875,
-								0.7875,
-								0.7875,
-								0.20375,
-								0.7875,
-								0.02,
-								0.65125,
-								0.13125,
-								0.28375,
-								0.45375,
-								0.2125
+								1,
+								0.44320875113947134,
+								1,
+								0.6415679124886052,
+								0.8443304843304843,
+								1,
+								0.16312250712250712,
+								1,
+								0,
+								0.795587967183227,
+								0.07851851851851853,
+								0.10949863263445761,
+								0.45486039886039886,
+								0
 							]
 						},
 						"useCollisionPoly": true,
@@ -52,49 +52,6 @@
 				],
 				"sid": 528182059803460,
 				"name": "Animation 1",
-				"isLooping": false,
-				"isPingPong": false,
-				"repeatCount": 1,
-				"repeatTo": 0,
-				"speed": 5
-			},
-			{
-				"frames": [
-					{
-						"width": 800,
-						"height": 800,
-						"originX": 0.5,
-						"originY": 0.5,
-						"originalSource": "",
-						"exportFormat": "lossless",
-						"exportQuality": 0.8,
-						"fileType": "image/png",
-						"imageSpriteId": 7920204,
-						"collisionPoly": {
-							"points": [
-								0.94125,
-								0.4625,
-								0.99625,
-								0.56875,
-								0.7875,
-								0.7875,
-								0.20375,
-								0.7875,
-								0.02,
-								0.65125,
-								0.13125,
-								0.28375,
-								0.45375,
-								0.2125
-							]
-						},
-						"useCollisionPoly": true,
-						"duration": 1,
-						"tag": ""
-					}
-				],
-				"sid": 940073688303179,
-				"name": "red",
 				"isLooping": false,
 				"isPingPong": false,
 				"repeatCount": 1,
