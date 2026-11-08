@@ -1,9 +1,8 @@
 // ===== Переменные игры =====
 const HPMax = 3;     // жизни монстра
 let HP = HPMax;      // сколько жизней осталось
-let Phase = 0;       // 0 — ловим врагов, 1 — враги гонятся за нами, 2 — победа
-let TimeLeft = 30;   // секунд до смены фазы
-let Invuln = 0;      // секунд неуязвимости после удара
+let Victory = false; // true — победа, игра окончена
+let Invuln = 0;     // секунд неуязвимости после удара
 const ZoomStart = 1.6;    // приближение на старте и при стоянии (больше = ближе)
 const ZoomMin = 1.0;      // отдаление на максимальной скорости (меньше = дальше)
 let CamZoom = ZoomStart;  // текущий масштаб камеры
@@ -47,6 +46,9 @@ runOnStartup(async runtime =>
 	runtime.getLayout(MENU_LAYOUT).addEventListener("afterlayoutstart", () => StartMenu(runtime));
 	runtime.getLayout(GAME_LAYOUT).addEventListener("afterlayoutstart", () => StartGame(runtime));
 
+	// встроенного isDestroyed у объектов нет — помечаем уничтоженные сами
+	runtime.addEventListener("instancedestroy", e => { e.instance.dead = true; });
+
 	// каждый кадр — игра, но только на игровом макете
 	runtime.addEventListener("tick", () =>
 	{
@@ -57,6 +59,8 @@ runOnStartup(async runtime =>
 // ===== Меню: кнопки выбора роли =====
 function StartMenu(runtime)
 {
+	runtime.timeScale = 1;   // снимаем паузу, если вышли в меню из окна
+
 	const hunterBtn = runtime.objects.КнопкаОхотника.getFirstInstance();
 	const minicBtn  = runtime.objects.КнопкаМиника.getFirstInstance();
 
@@ -73,9 +77,9 @@ function SelectRole(runtime, hunter)
 // ===== Начало игры =====
 function StartGame(runtime)
 {
+	runtime.timeScale = 1;   // новый раунд всегда без паузы
 	HP = HPMax;
-	Phase = 0;
-	TimeLeft = 30;
+	Victory = false;
 	GameTimeLeft = Minutes * 60;
 	Invuln = 0;
 
@@ -86,7 +90,6 @@ function StartGame(runtime)
 
 	for (const enemy of runtime.objects.enemy.instances())
 	{
-		enemy.setAnimation("Animation 1");
 		enemy.hp = EnemyMaxHp;
 		enemy.ramCooldown = 0;
 		enemy.pushX = 0;
@@ -186,13 +189,12 @@ function ResetCamera(runtime, car)
 // ===== Каждый кадр =====
 function Tick(runtime)
 {
-	if (!Player || Player.isDestroyed) return;
+	if (!Player || Player.dead) return;
 
 	const car = runtime.objects.car.getFirstInstance();
 	if (!car) return;
 
 	Controls(runtime, Player);
-	UpdateTimer(runtime);
 	TimerToEndThisGame(runtime);
 	MoveEnemies(runtime, car);
 	ApplyPush(runtime);
@@ -233,7 +235,7 @@ function CreateHealthBars(runtime)
 function TimerToEndThisGame(runtime)
 {
 	// уже победили или время уже вышло — больше не считаем
-	if (Phase === 2 || GameTimeLeft <= 0) return;
+	if (Victory || GameTimeLeft <= 0) return;
 
 	GameTimeLeft -= runtime.dt;
 	if (GameTimeLeft < 0) GameTimeLeft = 0;
@@ -260,7 +262,7 @@ function UpdateHealthBars(runtime)
 		if (!car) continue;               // образец, ещё не удалён
 
 		// машина уничтожена — полоска тоже
-		if (car.isDestroyed)
+		if (car.dead)
 		{
 			bar.destroy();
 			continue;
@@ -370,39 +372,6 @@ function Controls(runtime, car)
 	bullet.angleOfMotion = car.angle;
 }
 
-// ===== Таймер: 30 с ловим, 10 с убегаем =====
-function UpdateTimer(runtime)
-{
-	if (Phase === 2) return;   // уже победили
-
-	TimeLeft -= runtime.dt;
-
-	if (TimeLeft <= 0)
-	{
-		if (Phase === 0)
-		{
-			Phase = 1;
-			TimeLeft = 10;
-			SetEnemyAnimation(runtime, "red");
-		}
-		else
-		{
-			Phase = 0;
-			TimeLeft = 30;
-			SetEnemyAnimation(runtime, "Animation 1");
-		}
-	}
-
-	const label = (Phase === 0) ? "Catch! " : "Run! ";
-	runtime.objects.Таймер.getFirstInstance().text = label + Math.ceil(TimeLeft);
-}
-
-function SetEnemyAnimation(runtime, name)
-{
-	for (const enemy of runtime.objects.enemy.instances())
-		enemy.setAnimation(name);
-}
-
 //Подсчёт оставшихся машинок
 function CountEnemys(runtime)
 {
@@ -413,7 +382,9 @@ function CountEnemys(runtime)
 	label.text = "Осталось: " + counter + " охотников";
 }
 
-// ===== Враги: убегают или догоняют =====
+// ===== Враги: держатся на безопасном расстоянии =====
+const SafeDistance = 700;   // дальше этого — подъезжают к монстру (меньше дальности лазера 700)
+
 function MoveEnemies(runtime, car)
 {
 	for (const enemy of runtime.objects.enemy.instances())
@@ -421,25 +392,24 @@ function MoveEnemies(runtime, car)
 		if (enemy === Player) continue;   // игроком управляет клавиатура
 
 		const bullet = enemy.behaviors.Пуля;
+		const dist = Distance(car, enemy);
 
-		if (Phase === 0)
+		if (dist < 300)
 		{
 			// убегают, если машина ближе 300
-			if (Distance(car, enemy) < 300)
-			{
-				bullet.speed = 200;
-				TurnTo(enemy, AngleFromTo(car, enemy), 5);
-			}
-			else
-			{
-				bullet.speed = 0;
-			}
+			bullet.speed = 200;
+			TurnTo(enemy, AngleFromTo(car, enemy), 5);
 		}
-		else if (Phase === 1)
+		else if (dist > SafeDistance)
 		{
-			// догоняют машину
+			// далеко — подбираются к монстру
 			bullet.speed = 250;
 			TurnTo(enemy, AngleFromTo(enemy, car), 4);
+		}
+		else
+		{
+			// на безопасном расстоянии — стоят
+			bullet.speed = 0;
 		}
 
 		bullet.angleOfMotion = enemy.angle;   // едут туда, куда смотрят
@@ -471,26 +441,9 @@ function CheckHits(runtime, car)
 
 		if (!car.testOverlap(enemy)) continue;
 
-		if (speed > RamMinSpeed)
-		{
-			if (enemy.ramCooldown <= 0) Ram(runtime, car, enemy, speed);   // таран!
-		}
-		else if (Phase === 1 && Invuln <= 0)
-		{
-			LoseLife(runtime);        // враг поймал нас
-		}
+		if (speed > RamMinSpeed && enemy.ramCooldown <= 0)
+			Ram(runtime, car, enemy, speed);   // таран!
 	}
-}
-
-function LoseLife(runtime)
-{
-	HP -= 1;
-	Invuln = 1.5;
-
-	// жизни кончились — заново
-	if (HP <= 0){
-		ShowPopup(runtime, true, false);
-	};
 }
 
 // ===== Неуязвимость: машина полупрозрачная =====
@@ -510,12 +463,11 @@ function UpdateInvuln(runtime, car)
 // ===== Победа: врагов не осталось =====
 function CheckWin(runtime)
 {
-	if (Phase === 2) return;
+	if (Victory) return;
 
 	if (runtime.objects.enemy.getAllInstances().length === 0)
 	{
-		Phase = 2;
-		runtime.objects.Таймер.getFirstInstance().text = "Победа!";
+		Victory = true;
 		ShowPopup(runtime, true, true);
 	}
 }
@@ -549,7 +501,7 @@ function TurnTo(obj, target, degrees)
 // ===================== БОТ-ОХОТНИК  ================
 // ===================================================
 // Охотники — это enemy, Монстр — это car.
-// Двигаются охотники как раньше (MoveEnemies), этот блок отвечает только за стрельбу:
+// Двигаются охотники в MoveEnemies, этот блок отвечает только за стрельбу:
 // охотник видит Монстра, целится в него и раз в 0.5 с стреляет лучом (railgun).
 // Луч летит с конечной скоростью, не наводится сам и не проходит сквозь стены.
 
@@ -604,11 +556,11 @@ function MonsterData(m)
 
 // ===== API охотника =====
 
-// вызывается в начале раунда (StartGame): у каждого охотника снова 10 выстрелов, лучи убираются
+// вызывается в начале раунда (StartGame): у каждого охотника снова 10 выстрелов
 function ResetHunters(runtime)
 {
-	for (const l of lasers)
-		if (!l.inst.isDestroyed) l.inst.destroy();
+	// лучи прошлого раунда Construct уже удалил вместе с макетом —
+	// destroy() у них вызывать нельзя (ошибка «reading 'DestroyInstance'»), просто забываем их
 	lasers = [];
 
 	for (const h of Instances(runtime, CFG.HunterType))  hunterState.delete(h);
@@ -700,7 +652,7 @@ function UpdateLasers(runtime, dt)
 	for (let i = lasers.length - 1; i >= 0; i--)
 	{
 		const l = lasers[i];
-		if (l.inst.isDestroyed) { lasers.splice(i, 1); continue; }
+		if (l.inst.dead) { lasers.splice(i, 1); continue; }
 
 		const x1 = l.x, y1 = l.y;
 		const x2 = x1 + l.dx * step;
@@ -747,7 +699,7 @@ function UpdateLasers(runtime, dt)
 	}
 }
 
-// попадание лазера снимает HP Монстра (общий HP игры, как в LoseLife)
+// попадание лазера снимает HP Монстра (общий HP игры)
 function DamageMonster(runtime, damage)
 {
 	if (Invuln > 0 || HP <= 0) return;   // пока машина неуязвима, урон не проходит

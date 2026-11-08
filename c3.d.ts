@@ -1,5 +1,5 @@
 // NOTE: This definition file is auto generated - any changes you make will not be saved
-// 11/1/2026 10:24:11 AM
+// 11/8/2026 12:20:52 PM
 
 declare function runOnStartup(cb: (runtime: IRuntime) => void): void;
 
@@ -52,6 +52,7 @@ interface IRuntimeObjects {
 	['ПобедныйТекст']: IObjectClass<IПобедныйТекст>;
 	['ОкноФон']: IObjectClass<IОкноФон>;
 	['ОкноТекст']: IObjectClass<IОкноТекст>;
+	['ОбщееВремяИгрыТекст']: IObjectClass<IОбщееВремяИгрыТекст>;
 	['Мышь']: IObjectClass<IМышь>;
 	['КоличествоМашинок']: IObjectClass<IКоличествоМашинок>;
 	['КолесоСтатик']: IObjectClass<IКолесоСтатик>;
@@ -63,6 +64,7 @@ interface IRuntimeObjects {
 	['КнопкаЗакрыть']: IObjectClass<IКнопкаЗакрыть>;
 	['Клавиатура']: IObjectClass<IКлавиатура>;
 	['wall']: IObjectClass<Iwall>;
+	['LaserBolt']: IObjectClass<ILaserBolt>;
 	['hearth']: IObjectClass<Ihearth>;
 	['enemy']: IObjectClass<Ienemy>;
 	['car']: IObjectClass<Icar>;
@@ -303,6 +305,17 @@ interface IОкноТекст extends ITextInstance {
 	behaviors: IОкноТекстBehaviors;
 }
 
+interface IОбщееВремяИгрыТекстVars extends VariableType {
+	
+}
+interface IОбщееВремяИгрыТекстBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface IОбщееВремяИгрыТекст extends ITextInstance {
+	instVars: IОбщееВремяИгрыТекстVars;
+	behaviors: IОбщееВремяИгрыТекстBehaviors;
+}
+
 interface IМышьVars extends VariableType {
 	
 }
@@ -422,6 +435,17 @@ interface IwallBehaviors extends Record<string, IBehaviorInstance> {
 interface Iwall extends IWorldInstance {
 	instVars: IwallVars;
 	behaviors: IwallBehaviors;
+}
+
+interface ILaserBoltVars extends VariableType {
+	
+}
+interface ILaserBoltBehaviors extends Record<string, IBehaviorInstance> {
+	
+}
+interface ILaserBolt extends ISpriteInstance {
+	instVars: ILaserBoltVars;
+	behaviors: ILaserBoltBehaviors;
 }
 
 interface IhearthVars extends VariableType {
