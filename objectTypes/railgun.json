@@ -1,0 +1,72 @@
+{
+	"name": "railgun",
+	"plugin-id": "Sprite",
+	"sid": 301322376721652,
+	"isGlobal": false,
+	"editorNewInstanceIsReplica": true,
+	"instanceVariables": [],
+	"behaviorTypes": [],
+	"effectTypes": [],
+	"animations": {
+		"items": [
+			{
+				"frames": [
+					{
+						"width": 2048,
+						"height": 2048,
+						"originX": 0.5,
+						"originY": 0.5,
+						"originalSource": "",
+						"exportFormat": "lossless",
+						"exportQuality": 0.8,
+						"fileType": "image/png",
+						"imageSpriteId": 2588308,
+						"collisionPoly": {
+							"points": [
+								0.359375,
+								0.2587890625,
+								0.4833984375,
+								0.2587890625,
+								0.52783203125,
+								0.2646484375,
+								0.88671875,
+								0.47314453125,
+								0.86279296875,
+								0.5537109375,
+								0.48779296875,
+								0.7333984375,
+								0.34814453125,
+								0.7275390625,
+								0.2646484375,
+								0.68115234375,
+								0.18798828125,
+								0.59423828125,
+								0.17236328125,
+								0.54345703125,
+								0.17236328125,
+								0.45263671875,
+								0.18798828125,
+								0.3916015625,
+								0.24169921875,
+								0.32470703125,
+								0.28369140625,
+								0.29248046875
+							]
+						},
+						"useCollisionPoly": true,
+						"duration": 1,
+						"tag": ""
+					}
+				],
+				"sid": 366310372541601,
+				"name": "Animation 1",
+				"isLooping": false,
+				"isPingPong": false,
+				"repeatCount": 1,
+				"repeatTo": 0,
+				"speed": 5
+			}
+		],
+		"subfolders": []
+	}
+}

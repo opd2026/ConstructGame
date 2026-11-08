@@ -18,8 +18,8 @@
 			{
 				"frames": [
 					{
-						"width": 800,
-						"height": 800,
+						"width": 2048,
+						"height": 2048,
 						"originX": 0.5,
 						"originY": 0.5,
 						"originalSource": "",

@@ -96,6 +96,7 @@ function StartGame(runtime)
 		enemy.pushY = 0;
 	}
 
+	CreateGuns(runtime);          // прикрепляем рельсотрон к каждому охотнику
 	CreateHealthBars(runtime);
 
 	// выбираем, кем управляет игрок
@@ -200,6 +201,7 @@ function Tick(runtime)
 	ApplyPush(runtime);
 	CheckHits(runtime, car);
 	TickHunters(runtime);    // ИИ охотников и полёт лучей
+	UpdateGuns(runtime);     // пушки едут вместе с охотниками и поворачиваются на цель
 	UpdateInvuln(runtime, Player);
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
@@ -312,7 +314,7 @@ function Ram(runtime, car, enemy, speed)
 	enemy.pushX = Math.cos(angle) * speed * RamPush;
 	enemy.pushY = Math.sin(angle) * speed * RamPush;
 
-	if (enemy.hp <= 0) enemy.destroy();
+	if (enemy.hp <= 0) enemy.destroy();   // пушка уберётся сама в UpdateGuns
 }
 
 // ===== Шкала ускорения на HUD =====
@@ -496,14 +498,25 @@ function TurnTo(obj, target, degrees)
 	else obj.angle += Math.sign(diff) * step;
 }
 
+// на сколько радиан отличаются два угла (всегда 0..π)
+function AngleDiff(a, b)
+{
+	return Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a)));
+}
+
 
 // ===================================================
 // ===================== БОТ-ОХОТНИК  ================
 // ===================================================
 // Охотники — это enemy, Монстр — это car.
 // Двигаются охотники в MoveEnemies, этот блок отвечает только за стрельбу:
-// охотник видит Монстра, целится в него и раз в 0.5 с стреляет лучом (railgun).
+// охотник видит Монстра, целится в него и стреляет лучом (railgun) очередями:
+// в очереди 2–4 выстрела с неровными интервалами (в среднем 0.5 с), потом пауза,
+// у каждой очереди своя точность, а боезапас ограничен (10 выстрелов за раунд).
 // Луч летит с конечной скоростью, не наводится сам и не проходит сквозь стены.
+//
+// Спрайт «railgun» прикреплён к каждому охотнику: едет вместе с ним, поворачивается
+// на Монстра, а луч вылетает из среза ствола. Нет цели — ствол смотрит вперёд.
 
 // ===== Настройки =====
 const CFG =
@@ -513,21 +526,44 @@ const CFG =
 	MonsterType: "car",         // в кого стреляют
 	WallType:    "wall",        // стены: не пропускают ни взгляд, ни луч
 	LaserType:   "LaserBolt",   // спрайт луча (тонкая светящаяся полоска)
+	GunType:     "railgun",     // спрайт пушки (прикрепляется к охотнику)
+
+	// пушка (где она стоит относительно машины — берётся с макета, см. CreateGuns)
+	GunOffsetX:   0,            // px: доп. сдвиг пушки вперёд по ходу машины (минус — назад), для подгонки
+	GunOffsetY:   0,            // px:                         вбок
+	GunMuzzle:    40,           // px от центра пушки до среза ствола (отсюда вылетает луч)
+	GunTurnSpeed: 540,          // град/с: как быстро ствол поворачивается на цель
+	AimTolerance: 8,            // град: стреляет, только когда ствол довернулся на цель с такой точностью
 
 	// зрение
 	VisionRange: 700,           // px, дальше Монстра не видно
 
-	// оружие
-	FireInterval: 0.5,          // с между выстрелами
-	MaxShots:     10,           // выстрелов за раунд на каждого охотника
+	// боезапас
+	MaxShots:     10,           // выстрелов за раунд на каждого охотника (кончились — больше не стреляет)
+
+	// очереди и скорострельность (всё случайное в диапазоне, поэтому ритм не угадать)
+	BurstMin:     2,            // выстрелов в очереди: от
+	BurstMax:     4,            //                      до
+	ShotGapMin:   0.3,          // с между выстрелами внутри очереди: от
+	ShotGapMax:   0.7,          //                                    до (в среднем 0.5 с)
+	PauseMin:     1.5,          // с паузы между очередями: от
+	PauseMax:     3.5,          //                          до
+
+	// точность (у каждой очереди своя, внутри очереди каждый выстрел ещё и отклоняется случайно)
+	SpreadMin:    4,            // разброс очереди, град: от
+	SpreadMax:    14,           //                        до (выстрел уходит на угол от -разброс до +разброс)
+	LeadAim:      true,         // целиться с упреждением по скорости Монстра
+	LeadMin:      0.5,          // насколько точно учитывает скорость Монстра (1 = идеально): от
+	LeadMax:      1.0,          //                                                           до
+
+	// луч
 	LaserSpeed:   1400,         // px/с (конечная скорость = не моментальное попадание)
 	LaserRange:   900,          // px, дальше луч гаснет
 	LaserDamage:  0.25,         // урон в единицах HP Монстра (у него HPMax = 3, значит 12 попаданий)
-	LeadAim:      true,         // целиться с упреждением по скорости Монстра
 };
 
 // ===== Состояние (хранится в коде, переменные в редакторе не нужны) =====
-const hunterState  = new WeakMap();  // enemy -> { shots, cooldown }
+const hunterState  = new WeakMap();  // enemy -> { shots, cooldown, burstLeft, burstSpread, aim }
 const monsterState = new WeakMap();  // car   -> { px, py, vx, vy }
 let lasers = [];                     // летящие лучи
 
@@ -536,8 +572,9 @@ function HunterData(h)
 	let s = hunterState.get(h);
 	if (!s)
 	{
-		// случайная задержка первого выстрела, чтобы охотники не стреляли залпом
-		s = { shots: 0, cooldown: Math.random() * CFG.FireInterval };
+		// случайная задержка первой очереди, чтобы охотники не стреляли залпом
+		// aim — угол, куда сейчас смотрит ствол (null — цели нет, ствол смотрит вперёд)
+		s = { shots: 0, cooldown: Rand(0, CFG.PauseMax), burstLeft: 0, burstSpread: CFG.SpreadMax, aim: null };
 		hunterState.set(h, s);
 	}
 	return s;
@@ -552,6 +589,105 @@ function MonsterData(m)
 		monsterState.set(m, s);
 	}
 	return s;
+}
+
+// ===== Пушка, прикреплённая к охотнику =====
+// Работает как поведение Pin, только в коде: на макете можно положить один спрайт «railgun»
+// (он нужен как образец размера и сам удаляется), а у каждого охотника появится своя пушка.
+
+// где пушка стоит относительно охотника, в системе координат машины: x — вперёд, y — вбок.
+// Заполняется в CreateGuns по образцу пушки на макете
+let GunLocal = { x: 0, y: 0 };
+
+// по образцу пушки на макете считает, где она стоит относительно ближайшего охотника.
+// Нет образца или он лежит далеко от машин — (0, 0)
+function LearnGunPlacement(runtime, sample)
+{
+	if (!sample) return { x: 0, y: 0 };
+
+	let nearest = null;
+	let best = Infinity;
+	for (const e of Instances(runtime, CFG.HunterType))
+	{
+		const d = Distance(sample, e);
+		if (d < best) { best = d; nearest = e; }
+	}
+	if (!nearest || best > Math.max(nearest.width, nearest.height)) return { x: 0, y: 0 };
+
+	// смещение пушки от машины переводим в систему координат машины (поворачиваем на -angle)
+	const dx = sample.x - nearest.x;
+	const dy = sample.y - nearest.y;
+	const c = Math.cos(nearest.angle);
+	const s = Math.sin(nearest.angle);
+	return { x: dx * c + dy * s, y: -dx * s + dy * c };
+}
+
+// точка, где стоит пушка охотника: так же, как на макете, и с учётом поворота машины
+function MountPoint(hunter)
+{
+	const lx = GunLocal.x + CFG.GunOffsetX;
+	const ly = GunLocal.y + CFG.GunOffsetY;
+	const c = Math.cos(hunter.angle);
+	const s = Math.sin(hunter.angle);
+	return {
+		x: hunter.x + lx * c - ly * s,
+		y: hunter.y + lx * s + ly * c
+	};
+}
+
+// создаёт по пушке на каждого охотника (вызывается в начале раунда)
+function CreateGuns(runtime)
+{
+	const Gun = runtime.objects[CFG.GunType];
+	if (!Gun) return;
+
+	// запоминаем размер образца с макета и убираем лишние пушки, которые лежат на макете
+	const sample = Gun.getFirstInstance();
+	const w = sample?.width;
+	const h = sample?.height;
+	GunLocal = LearnGunPlacement(runtime, sample);   // где пушка стоит на машине на макете
+	for (const old of Gun.getAllInstances()) old.destroy();
+
+	for (const enemy of runtime.objects.enemy.instances())
+	{
+		const m = MountPoint(enemy);
+		const gun = Gun.createInstance(enemy.layer.name, m.x, m.y);
+		if (w !== undefined) { gun.width = w; gun.height = h; }
+
+		gun.angle = enemy.angle;
+		gun.owner = enemy;       // чья пушка
+		enemy.gun = gun;         // и в обратную сторону: какая пушка у охотника
+
+		gun.moveAdjacentToInstance(enemy, true);   // рисуем пушку прямо над машиной
+	}
+}
+
+// каждый кадр: пушка едет за охотником и поворачивается на цель
+function UpdateGuns(runtime)
+{
+	const Gun = runtime.objects[CFG.GunType];
+	if (!Gun) return;
+
+	for (const gun of Gun.instances())
+	{
+		const owner = gun.owner;
+		if (!owner) continue;
+
+		// охотник уничтожен — пушка тоже
+		if (owner.dead)
+		{
+			gun.destroy();
+			continue;
+		}
+
+		const m = MountPoint(owner);
+		gun.x = m.x;
+		gun.y = m.y;
+
+		// есть цель — смотрим на неё, нет цели (или игрок сам рулит этим enemy) — вперёд по ходу машины
+		const aim = hunterState.get(owner)?.aim;
+		TurnTo(gun, aim ?? owner.angle, CFG.GunTurnSpeed * runtime.dt);
+	}
 }
 
 // ===== API охотника =====
@@ -588,14 +724,28 @@ function TickHunters(runtime)
 // для интерфейса: сколько выстрелов осталось у охотника
 function GetShotsLeft(hunter) { return CFG.MaxShots - HunterData(hunter).shots; }
 
-// ===== Охотник: увидел → прицелился → выстрелил =====
+// точка, куда надо целиться: там, где Монстр будет к моменту прилёта луча
+// lead — насколько точно учитываем скорость Монстра (1 = идеально)
+function LeadPoint(target, dist, lead)
+{
+	let ax = target.x, ay = target.y;
+	if (CFG.LeadAim)
+	{
+		const ms = MonsterData(target);
+		const flight = dist / CFG.LaserSpeed;
+		ax += ms.vx * flight * lead;
+		ay += ms.vy * flight * lead;
+	}
+	return { x: ax, y: ay };
+}
+
+// ===== Охотник: увидел → навёл ствол → выстрелил =====
 function UpdateHunter(runtime, hunter, monsters, dt)
 {
 	const st = HunterData(hunter);
 
 	// таймер атаки
 	if (st.cooldown > 0) st.cooldown -= dt;
-	if (st.cooldown > 0 || st.shots >= CFG.MaxShots) return;   // ещё рано или выстрелы кончились
 
 	// ближайший Монстр, которого охотник реально видит (дальность + нет стены на линии)
 	let target = null;
@@ -610,35 +760,72 @@ function UpdateHunter(runtime, hunter, monsters, dt)
 			dist = d;
 		}
 	}
-	if (!target) return;   // не видит — не стреляет, выстрел не тратится
 
-	// прицел: в точку, где Монстр будет к моменту прилёта луча
-	let ax = target.x, ay = target.y;
-	if (CFG.LeadAim)
+	if (!target)
 	{
-		const ms = MonsterData(target);
-		const flight = dist / CFG.LaserSpeed;
-		ax += ms.vx * flight;
-		ay += ms.vy * flight;
+		st.aim = null;   // не видит — ствол возвращается вперёд, выстрел не тратится
+		return;
 	}
 
-	Fire(runtime, hunter, st, Math.atan2(ay - hunter.y, ax - hunter.x));
+	// ствол всё время следит за Монстром (даже между выстрелами)
+	const mount = MountPoint(hunter);
+	const track = LeadPoint(target, dist, (CFG.LeadMin + CFG.LeadMax) / 2);
+	st.aim = Math.atan2(track.y - mount.y, track.x - mount.x);
+
+	if (st.cooldown > 0 || st.shots >= CFG.MaxShots) return;   // ещё рано или выстрелы кончились
+
+	// ствол ещё не довернулся на цель — ждём (выстрел не тратится)
+	const gun = hunter.gun;
+	if (gun && !gun.dead && AngleDiff(gun.angle, st.aim) > CFG.AimTolerance * Math.PI / 180) return;
+
+	// начало новой очереди: сколько в ней выстрелов и насколько точно она будет стрелять
+	if (st.burstLeft <= 0)
+	{
+		st.burstLeft = RandInt(CFG.BurstMin, CFG.BurstMax);
+		st.burstSpread = Rand(CFG.SpreadMin, CFG.SpreadMax);   // одни очереди точные, другие «в молоко»
+	}
+
+	// прицел выстрела: скорость Монстра каждый раз учитывается неидеально
+	const aimPoint = LeadPoint(target, dist, Rand(CFG.LeadMin, CFG.LeadMax));
+
+	// случайное отклонение выстрела в пределах разброса этой очереди
+	const error = (Math.random() * 2 - 1) * st.burstSpread * Math.PI / 180;
+
+	Fire(runtime, hunter, st, Math.atan2(aimPoint.y - mount.y, aimPoint.x - mount.x) + error);
+
+	// ритм: внутри очереди — короткие неровные интервалы, после очереди — длинная пауза
+	st.burstLeft--;
+	st.cooldown = (st.burstLeft > 0)
+		? Rand(CFG.ShotGapMin, CFG.ShotGapMax)
+		: Rand(CFG.PauseMin, CFG.PauseMax);
 }
 
 // ===== Выстрел =====
 // Направление берём из прицела, а не из hunter.angle: угол enemy задаёт, куда он едет (MoveEnemies).
+// Луч вылетает из среза ствола пушки.
 function Fire(runtime, hunter, st, angle)
 {
 	const type = runtime.objects[CFG.LaserType];
 	if (!type) return;
 
-	const inst = type.createInstance(hunter.layer.name, hunter.x, hunter.y);
+	// ствол смотрит туда же, куда полетит луч
+	const gun = hunter.gun;
+	if (gun && !gun.dead) gun.angle = angle;
+
+	// срез ствола
+	const mount = MountPoint(hunter);
+	const mx = mount.x + Math.cos(angle) * CFG.GunMuzzle;
+	const my = mount.y + Math.sin(angle) * CFG.GunMuzzle;
+
+	st.shots++;   // боезапас уменьшился
+
+	// ствол упёрся в стену — луч гаснет сразу
+	if (!HasLineOfSight(runtime, mount.x, mount.y, mx, my)) return;
+
+	const inst = type.createInstance(hunter.layer.name, mx, my);
 	inst.angle = angle;
 
-	lasers.push({ inst, x: hunter.x, y: hunter.y, dx: Math.cos(angle), dy: Math.sin(angle), travelled: 0 });
-
-	st.shots++;
-	st.cooldown = CFG.FireInterval;
+	lasers.push({ inst, x: mx, y: my, dx: Math.cos(angle), dy: Math.sin(angle), travelled: 0 });
 }
 
 // ===== Полёт лучей: проверяем отрезок, пройденный за кадр =====
@@ -768,6 +955,18 @@ function SegmentSegment(x1, y1, x2, y2, x3, y3, x4, y4)
 }
 
 // ===== Помощники охотника =====
+
+// случайное число от min до max
+function Rand(min, max)
+{
+	return min + Math.random() * (max - min);
+}
+
+// случайное целое от min до max включительно
+function RandInt(min, max)
+{
+	return Math.floor(Rand(min, max + 1));
+}
 
 function Instances(runtime, typeName)
 {
