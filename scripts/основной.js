@@ -100,6 +100,9 @@ function StartGame(runtime)
 	CreateHealthBars(runtime);
 	CreateEnemyWheels(runtime);
 
+	ResetEvents();               // таймер ивентов — с начала
+	CreateDarkness(runtime);     // темнота и фары для ивента «Отключение света»
+
 	// выбираем, кем управляет игрок
 	const enemies = runtime.objects.enemy.getAllInstances();
 
@@ -207,6 +210,7 @@ function Tick(runtime)
 	UpdateInvuln(runtime, Player);
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
+	UpdateEvents(runtime, car);   // ивенты арены: таймер, темнота, стены, огонь
 	UpdateBoostBar(runtime);
 	UpdateHealthBars(runtime);
 	CountEnemys(runtime);
@@ -549,6 +553,365 @@ function CheckWin(runtime)
 		Victory = true;
 		ShowPopup(runtime, true, true);
 	}
+}
+
+// ===================================================
+// ===================== ИВЕНТЫ АРЕНЫ ================
+// ===================================================
+// Каждые 10 секунд на арене начинается новый случайный ивент, а прошлый заканчивается.
+// За 3 секунды до смены на HUD мигает надпись «ИвентТекст» и пищит сигнал.
+
+const EventInterval = 10;    // каждые столько секунд ивент сменяется
+const EventWarning = 3;      // за сколько секунд до смены предупреждаем
+
+const EVENT_DARK  = "Отключение света";
+const EVENT_WALLS = "Временные стены";
+const EVENT_FIRE  = "Опасные зоны";
+const EventList = [EVENT_DARK, EVENT_WALLS, EVENT_FIRE];
+
+let EventTimeLeft = EventInterval;   // секунд до смены ивента
+let CurrentEvent = "";               // какой ивент идёт сейчас ("" — никакого)
+let NextEvent = "";                  // какой ивент будет следующим
+
+const EventMargin = 150;       // стены и огонь не появляются ближе этого к краю арены
+const EventSafeDistance = 300; // ... и ближе этого к любой машине
+
+// вызывается в начале раунда (StartGame).
+// Стены и огонь прошлого раунда Construct уже удалил вместе с макетом — просто забываем их
+function ResetEvents()
+{
+	EventTimeLeft = EventInterval;
+	CurrentEvent = "";                 // первые 30 секунд — спокойно
+	NextEvent = PickEvent("");
+	TempWalls = [];
+	FireZones = [];
+}
+
+// случайный ивент, но не тот, что идёт сейчас
+function PickEvent(except)
+{
+	const list = EventList.filter(name => name !== except);
+	return list[RandInt(0, list.length - 1)];
+}
+
+// ===== Таймер ивентов (каждый кадр) =====
+function UpdateEvents(runtime, car)
+{
+	const before = Math.ceil(EventTimeLeft);   // сколько целых секунд оставалось до этого кадра
+	EventTimeLeft -= runtime.dt;
+
+	// время вышло — прошлый ивент заканчивается, новый начинается
+	if (EventTimeLeft <= 0)
+	{
+		StopEvent(runtime, CurrentEvent);
+		CurrentEvent = NextEvent;
+		NextEvent = PickEvent(CurrentEvent);
+		StartEvent(runtime, CurrentEvent);
+
+		EventTimeLeft = EventInterval;
+		Beep(900, 0.4);   // длинный сигнал: ивент начался
+	}
+
+	// отсчёт до смены ивента виден всегда.
+	// Предупреждение: последние 3 секунды надпись мигает, раз в секунду — короткий сигнал
+	const seconds = Math.ceil(EventTimeLeft);
+	const warning = EventTimeLeft <= EventWarning;
+
+	const label = runtime.objects.ИвентТекст?.getFirstInstance();
+	if (label)
+	{
+		label.text = "Через " + seconds + " с: " + NextEvent;
+		label.isVisible = !warning || EventTimeLeft % 0.5 > 0.15;
+	}
+	if (warning && seconds !== before) Beep(600, 0.15);
+
+	// то, что ивенты делают каждый кадр
+	if (CurrentEvent === EVENT_WALLS) UpdateTempWalls(runtime, car);
+	if (CurrentEvent === EVENT_FIRE)  UpdateFire(runtime, car);
+	UpdateDarkness(runtime);   // темнота гаснет плавно и после конца ивента, поэтому — всегда
+}
+
+function StartEvent(runtime, name)
+{
+	if (name === EVENT_DARK)  DarkTarget = DarkOpacity;   // свет плавно гаснет
+	if (name === EVENT_WALLS) SpawnTempWalls(runtime);
+	if (name === EVENT_FIRE)  SpawnFire(runtime);
+}
+
+function StopEvent(runtime, name)
+{
+	if (name === EVENT_DARK)  DarkTarget = 0;             // свет плавно включается
+	if (name === EVENT_WALLS) RemoveTempWalls();
+	if (name === EVENT_FIRE)  RemoveFire();
+}
+
+// случайная точка арены, рядом с которой нет машин
+// (чтобы стена или огонь не появились прямо на машине). Не нашлось — null
+function RandomFreePoint(runtime)
+{
+	const layout = runtime.layout;
+	const cars = [runtime.objects.car.getFirstInstance(), ...runtime.objects.enemy.instances()];
+
+	for (let attempt = 0; attempt < 20; attempt++)
+	{
+		const point = {
+			x: Rand(EventMargin, layout.width - EventMargin),
+			y: Rand(EventMargin, layout.height - EventMargin)
+		};
+		if (cars.every(car => !car || Distance(car, point) > EventSafeDistance)) return point;
+	}
+	return null;
+}
+
+// короткий звуковой сигнал. Звуковых файлов нет: звук создаёт сам браузер
+let AudioCtx = null;
+
+function Beep(frequency, seconds)
+{
+	if (typeof AudioContext === "undefined") return;   // звук недоступен
+	AudioCtx ??= new AudioContext();
+	if (AudioCtx.state === "suspended") AudioCtx.resume();
+
+	const now = AudioCtx.currentTime;
+	const sound = AudioCtx.createOscillator();
+	const volume = AudioCtx.createGain();
+	sound.frequency.value = frequency;                               // высота звука
+	volume.gain.setValueAtTime(0.15, now);                           // громкость
+	volume.gain.exponentialRampToValueAtTime(0.001, now + seconds);  // плавно затихает
+	sound.connect(volume);
+	volume.connect(AudioCtx.destination);
+	sound.start(now);
+	sound.stop(now + seconds);
+}
+
+// ===== Ивент «Отключение света» =====
+// Чёрный спрайт «Тьма» закрывает весь экран и плавно становится непрозрачным.
+// У каждой машины есть спрайт «Фары»: он не рисуется сам, а стирает темноту под собой,
+// поэтому перед машиной остаётся освещённое пятно.
+// Всё это лежит на слое HUD (верхний слой), под интерфейсом.
+
+const DarkOpacity = 1;     // насколько темно (0 — светло, 1 — полная темнота)
+const DarkFadeTime = 1.5;    // за сколько секунд свет гаснет и включается
+const LightLength = 560;     // длина пятна света от фар (в пикселях игрового мира)
+const LightWidth = 420;      // ширина пятна света
+const DarkHudTexts = ["КоличествоМашинок", "ОбщееВремяИгрыТекст"];   // надписи, которые в темноте светлеют
+
+let Dark = null;             // спрайт темноты
+let DarkTarget = 0;          // к какой непрозрачности темнота сейчас идёт (0 или DarkOpacity)
+
+// вызывается в начале раунда (StartGame)
+function CreateDarkness(runtime)
+{
+	Dark = null;
+	DarkTarget = 0;
+
+	const DarkType = runtime.objects.Тьма;
+	const LightType = runtime.objects.Фары;
+	if (!DarkType || !LightType) return;
+
+	// без этого фары стирали бы не только темноту, но и саму игру под ней
+	runtime.layout.getLayer("HUD").isForceOwnTexture = true;
+
+	// чёрный спрайт чуть больше экрана, пока полностью прозрачный
+	Dark = DarkType.createInstance("HUD", runtime.viewportWidth / 2, runtime.viewportHeight / 2);
+	Dark.width = runtime.viewportWidth * 1.2;
+	Dark.height = runtime.viewportHeight * 1.2;
+	Dark.opacity = 0;
+
+	// фары — по одной на каждую машину
+	const cars = [runtime.objects.car.getFirstInstance(), ...runtime.objects.enemy.instances()];
+	for (const car of cars)
+	{
+		if (!car) continue;
+		const light = LightType.createInstance("HUD", 0, 0);
+		light.blendMode = "destination-out";   // стирает то, что нарисовано под ней
+		light.owner = car;
+		light.moveToBottom();                  // под интерфейс
+	}
+
+	Dark.moveToBottom();   // темнота — в самом низу HUD: под фарами и под интерфейсом
+}
+
+// каждый кадр: темнота плавно появляется или исчезает, фары едут за машинами
+function UpdateDarkness(runtime)
+{
+	if (!Dark) return;
+
+	// плавно двигаем непрозрачность к нужной
+	const step = DarkOpacity / DarkFadeTime * runtime.dt;
+	if (Dark.opacity < DarkTarget) Dark.opacity = Math.min(Dark.opacity + step, DarkTarget);
+	else                           Dark.opacity = Math.max(Dark.opacity - step, DarkTarget);
+
+	const isDark = Dark.opacity > 0;
+	const scale = runtime.layout.scale;   // приближение камеры
+
+	for (const light of runtime.objects.Фары.instances())
+	{
+		const car = light.owner;
+		if (!car) continue;
+
+		// машина уничтожена — фара тоже
+		if (car.dead)
+		{
+			light.destroy();
+			continue;
+		}
+
+		light.isVisible = isDark;
+		if (!isDark) continue;
+
+		// фара стоит на машине и светит вперёд. HUD не двигается за камерой,
+		// поэтому место машины переводим из игрового мира в экранное
+		const point = WorldToScreen(runtime, car.x, car.y);
+		light.x = point.x;
+		light.y = point.y;
+		light.angle = car.angle;
+		light.width = LightLength * scale;
+		light.height = LightWidth * scale;
+	}
+
+	// чёрные надписи в темноте не видно — плавно делаем их белыми
+	const k = Dark.opacity / DarkOpacity;   // 0 — светло, 1 — темно
+	for (const name of DarkHudTexts)
+		for (const text of runtime.objects[name]?.instances() ?? [])
+		{
+			text.dayColor ??= text.fontColor;                           // запоминаем обычный цвет
+			text.fontColor = text.dayColor.map(c => c + (1 - c) * k);
+		}
+}
+
+// точка игрового мира → точка на экране (в координатах слоя HUD)
+function WorldToScreen(runtime, x, y)
+{
+	const layout = runtime.layout;
+	return {
+		x: (x - layout.scrollX) * layout.scale + runtime.viewportWidth / 2,
+		y: (y - layout.scrollY) * layout.scale + runtime.viewportHeight / 2
+	};
+}
+
+// ===== Ивент «Временные стены» =====
+// На арене появляются оранжевые стены. Это обычные «wall»: они твёрдые,
+// закрывают обзор охотникам и останавливают лучи. Монстр ломает их тараном.
+
+const TempWallCount = 6;      // сколько стен появляется
+const TempWallLength = 220;   // длина стены
+const TempWallThick = 40;     // толщина стены
+
+let TempWalls = [];           // стены, которые сейчас стоят
+
+function SpawnTempWalls(runtime)
+{
+	for (let i = 0; i < TempWallCount; i++)
+	{
+		const point = RandomFreePoint(runtime);
+		if (!point) continue;
+
+		// стена лежит или стоит — случайно
+		const flat = Math.random() < 0.5;
+		const width  = flat ? TempWallLength : TempWallThick;
+		const height = flat ? TempWallThick : TempWallLength;
+
+		// у «wall» точка привязки — левый верхний угол, поэтому сдвигаем на половину размера
+		const wall = runtime.objects.wall.createInstance("Слой 0", point.x - width / 2, point.y - height / 2);
+		wall.width = width;
+		wall.height = height;
+		wall.angle = 0;
+		wall.colorRgb = [1, 0.6, 0.2];   // оранжевая — чтобы отличать от обычных стен
+		TempWalls.push(wall);
+	}
+}
+
+// монстр на скорости таранит стену — стена разрушается
+function UpdateTempWalls(runtime, car)
+{
+	const drive = car.behaviors.Машина;
+	if (!drive || Math.abs(drive.speed) <= RamMinSpeed) return;   // медленный монстр стену не сломает
+
+	// Стена твёрдая, въехать в неё нельзя. Поэтому на мгновение сдвигаем монстра туда,
+	// где он окажется через пару кадров: если там стена — он её таранит
+	const ahead = drive.speed * runtime.dt * 3;
+	const dx = Math.cos(car.angle) * ahead;
+	const dy = Math.sin(car.angle) * ahead;
+
+	car.x += dx;
+	car.y += dy;
+	for (const wall of TempWalls)
+		if (!wall.broken && car.testOverlap(wall))
+		{
+			wall.broken = true;
+			wall.destroy();
+		}
+	car.x -= dx;
+	car.y -= dy;
+
+	TempWalls = TempWalls.filter(wall => !wall.broken);
+}
+
+// ивент закончился — стены исчезают
+function RemoveTempWalls()
+{
+	for (const wall of TempWalls) wall.destroy();
+	TempWalls = [];
+}
+
+// ===== Ивент «Опасные зоны» =====
+// Участки пола загораются. Кто стоит в огне — теряет здоровье.
+
+const FireCount = 5;          // сколько участков загорается
+const FireRadius = 110;       // радиус горящего участка
+const FireDamage = 0.2;       // урон монстру в секунду (в жизнях HP)
+const FireEnemyDamage = 15;   // урон охотнику в секунду (у него EnemyMaxHp жизней)
+
+let FireZones = [];           // горящие участки
+
+function SpawnFire(runtime)
+{
+	for (let i = 0; i < FireCount; i++)
+	{
+		const point = RandomFreePoint(runtime);
+		if (!point) continue;
+
+		const fire = runtime.objects.Огонь?.createInstance("Слой 0", point.x, point.y);
+		if (!fire) return;
+
+		fire.width = FireRadius * 2;
+		fire.height = FireRadius * 2;
+		fire.moveToBottom();   // огонь горит на полу, под машинами
+		FireZones.push(fire);
+	}
+}
+
+function UpdateFire(runtime, car)
+{
+	// огонь мерцает
+	for (const fire of FireZones)
+		fire.opacity = 0.75 + 0.25 * Math.sin(runtime.gameTime * 12 + fire.x);
+
+	// монстр в огне — теряет жизни
+	if (InFire(car)) DamageMonster(runtime, FireDamage * runtime.dt);
+
+	// охотники в огне — тоже
+	for (const enemy of runtime.objects.enemy.instances())
+	{
+		if (!InFire(enemy)) continue;
+
+		enemy.hp -= FireEnemyDamage * runtime.dt;
+		if (enemy.hp <= 0) enemy.destroy();
+	}
+}
+
+// стоит ли объект в огне
+function InFire(obj)
+{
+	return FireZones.some(fire => Distance(obj, fire) < FireRadius);
+}
+
+// ивент закончился — огонь гаснет
+function RemoveFire()
+{
+	for (const fire of FireZones) fire.destroy();
+	FireZones = [];
 }
 
 // ===== Помощники =====
