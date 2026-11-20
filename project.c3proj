@@ -1,6 +1,6 @@
 {
 	"projectFormatVersion": 1,
-	"savedWithRelease": 50603,
+	"savedWithRelease": 50604,
 	"name": "Новый проект",
 	"runtime": "c3",
 	"useWorker": "auto",
@@ -112,7 +112,8 @@
 			"Тьма",
 			"Фары",
 			"Огонь",
-			"ИвентТекст"
+			"ИвентТекст",
+			"ТекстКоличестваОхотников"
 		],
 		"subfolders": []
 	},

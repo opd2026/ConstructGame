@@ -66,6 +66,8 @@ function StartMenu(runtime)
 
 	hunterBtn?.addEventListener("click", () => SelectRole(runtime, true));
 	minicBtn?.addEventListener("click",  () => SelectRole(runtime, false));
+
+	SetupHunterCountMenu(runtime);   // выбор числа охотников (4–8)
 }
 
 function SelectRole(runtime, hunter)
@@ -88,6 +90,8 @@ function StartGame(runtime)
 	BoostLocked = false;
 	BarWidth = runtime.objects.ШкалаУскорения?.getFirstInstance()?.width ?? 0;
 
+	StartHunterPool(runtime);   // набираем стаю охотников (4–8) и выдаём им жизни
+
 	for (const enemy of runtime.objects.enemy.instances())
 	{
 		enemy.hp = EnemyMaxHp;
@@ -109,6 +113,8 @@ function StartGame(runtime)
 	Player = IsHunter
 		? runtime.objects.car.getFirstInstance()
 		: enemies[Math.floor(Math.random() * enemies.length)] ?? null;
+
+	TrimHunterPool(runtime);     // убираем лишних охотников с макета (если их больше, чем в настройках)
 
 	// сразу приближаемся к игроку, без «наезда» камеры
 	ResetCamera(runtime, Player);
@@ -205,6 +211,7 @@ function Tick(runtime)
 	UpdateEnemyWheels(runtime);
 	ApplyPush(runtime);
 	CheckHits(runtime, car);
+	UpdateRespawns(runtime); // возрождение охотников и эффекты взрывов
 	TickHunters(runtime);    // ИИ охотников и полёт лучей
 	UpdateGuns(runtime);     // пушки едут вместе с охотниками и поворачиваются на цель
 	UpdateInvuln(runtime, Player);
@@ -320,7 +327,7 @@ function Ram(runtime, car, enemy, speed)
 	enemy.pushX = Math.cos(angle) * speed * RamPush;
 	enemy.pushY = Math.sin(angle) * speed * RamPush;
 
-	if (enemy.hp <= 0) enemy.destroy();   // пушка уберётся сама в UpdateGuns
+	if (enemy.hp <= 0) KillHunter(runtime, enemy);   // взрыв, минус жизнь, респавн (или выбывание)
 }
 
 // ===== Шкала ускорения на HUD =====
@@ -897,7 +904,7 @@ function UpdateFire(runtime, car)
 		if (!InFire(enemy)) continue;
 
 		enemy.hp -= FireEnemyDamage * runtime.dt;
-		if (enemy.hp <= 0) enemy.destroy();
+		if (enemy.hp <= 0) KillHunter(runtime, enemy);   // взрыв, минус жизнь, респавн (или выбывание)
 	}
 }
 
@@ -912,6 +919,407 @@ function RemoveFire()
 {
 	for (const fire of FireZones) fire.destroy();
 	FireZones = [];
+}
+
+// ===================================================
+// ======= ПУЛ ОХОТНИКОВ, ЖИЗНИ (Lives), РЕСПАВН =====
+// ===================================================
+// Вставь этот блок целиком в main.js (например, перед блоком «Помощники»).
+//
+// Что делает:
+//  1. В главном меню выбирается число охотников (4–8).
+//  2. В начале раунда код берёт охотника с макета как образец и создаёт недостающих
+//     (пушка, колёса, полоска здоровья и фары им достаются от старого кода StartGame).
+//  3. У каждого охотника есть enemy.lives = HunterLives (3).
+//  4. hp <= 0 → lives уменьшается, играет взрыв, охотник пропадает на 2–3 секунды
+//     и возрождается в безопасной точке карты (или на краю арены).
+//  5. Когда lives доходит до 0, охотник выбывает насовсем (destroy). Старый CheckWin
+//     сам даёт победу, когда охотников не осталось, то есть жизни кончились у ВСЕХ.
+
+// ===== Настройки =====
+const HunterCountMin = 4;          // минимум охотников (меньше в меню не поставить)
+const HunterCountMax = 8;          // максимум охотников
+let HunterCount = HunterCountMin;  // выбор в меню (хранится между раундами)
+
+const HunterLives = 3;             // жизней у каждого охотника
+
+const RespawnMin = 2;              // через сколько секунд после взрыва возрождается: от
+const RespawnMax = 3;              //                                                  до
+const RespawnProtection = 1.5;     // секунд после возрождения Монстр не может его таранить
+const RespawnMargin = 150;         // случайные точки не ближе этого к краю арены
+const RespawnEdgeInset = 80;       // запасной вариант: точки на краю арены, отступ от края
+const RespawnMonsterDistance = 500;// не возрождаем ближе этого к Монстру
+const RespawnMateDistance = 250;   // ... и ближе этого к другим охотникам
+const RespawnTries = 40;           // сколько случайных точек пробуем, потом — край арены
+
+const ExplosionType = "Взрыв";     // свой спрайт взрыва (необязательно, см. Explode)
+const ExplosionSpriteTime = 3;     // секунд: страховка, через сколько спрайт взрыва удалится сам
+const SparkCount = 14;             // запасной взрыв из искр: сколько искр
+const SparkSpeedMin = 150;         // px/с: скорость искр от
+const SparkSpeedMax = 450;         //                      до
+const ExplosionTime = 0.7;         // сколько секунд живут искры
+
+// ===== Состояние =====
+let PoolKeep = [];      // охотники этого раунда
+let PoolSurplus = [];   // лишние охотники с макета (удаляются в TrimHunterPool)
+let Effects = [];       // летящие искры и спрайты взрывов
+
+// ===== Меню: сколько охотников в матче =====
+// В редакторе (необязательно, всё работает и без этого: стрелки или цифры 4–8 на клавиатуре):
+//   ТекстКоличестваОхотников — текст, покажет «Охотников: 6»
+//   КнопкаБольшеОхотников    — кнопка «+»
+//   КнопкаМеньшеОхотников    — кнопка «−»
+let HunterCountKeysReady = false;
+const HunterCountKeyState = {};   // клавиша -> была ли нажата в прошлом кадре
+
+function SetupHunterCountMenu(runtime)
+{
+	const more = runtime.objects.КнопкаБольшеОхотников?.getFirstInstance();
+	const less = runtime.objects.КнопкаМеньшеОхотников?.getFirstInstance();
+	more?.addEventListener("click", () => ChangeHunterCount(runtime, 1));
+	less?.addEventListener("click", () => ChangeHunterCount(runtime, -1));
+
+	// клавиатура в меню: подписываемся на кадры один раз
+	if (!HunterCountKeysReady)
+	{
+		HunterCountKeysReady = true;
+		runtime.addEventListener("tick", () => PollHunterCountKeys(runtime));
+	}
+
+	ShowHunterCount(runtime);
+}
+
+// true только в тот кадр, когда клавишу нажали (а не пока её держат)
+function KeyPressedOnce(runtime, code)
+{
+	const down = runtime.keyboard.isKeyDown(code);
+	const wasDown = HunterCountKeyState[code] ?? false;
+	HunterCountKeyState[code] = down;
+	return down && !wasDown;
+}
+
+// стрелки вправо/вверх — больше, влево/вниз — меньше, цифры 4–8 — выбрать сразу
+function PollHunterCountKeys(runtime)
+{
+	if (runtime.layout.name !== MENU_LAYOUT) return;
+
+	const right = KeyPressedOnce(runtime, "ArrowRight");
+	const up    = KeyPressedOnce(runtime, "ArrowUp");
+	const left  = KeyPressedOnce(runtime, "ArrowLeft");
+	const down  = KeyPressedOnce(runtime, "ArrowDown");
+	if (right || up)   ChangeHunterCount(runtime, 1);
+	if (left  || down) ChangeHunterCount(runtime, -1);
+
+	for (let n = HunterCountMin; n <= HunterCountMax; n++)
+	{
+		const digit  = KeyPressedOnce(runtime, "Digit" + n);
+		const numpad = KeyPressedOnce(runtime, "Numpad" + n);
+		if (digit || numpad) SetHunterCount(runtime, n);
+	}
+}
+
+function ChangeHunterCount(runtime, delta)
+{
+	SetHunterCount(runtime, HunterCount + delta);
+}
+
+function SetHunterCount(runtime, count)
+{
+	HunterCount = Math.min(Math.max(count, HunterCountMin), HunterCountMax);
+	ShowHunterCount(runtime);
+}
+
+function ShowHunterCount(runtime)
+{
+	const label = runtime.objects.ТекстКоличестваОхотников?.getFirstInstance();
+	if (label) label.text = "Охотников: " + HunterCount;
+}
+
+// ===== Старт раунда: набираем стаю =====
+// Вызывается в StartGame ДО цикла, который выставляет охотникам hp (чтобы новые тоже его получили,
+// а потом пушки, колёса и полоски создались на всех).
+// Образец — охотник, рядом с которым на макете лежат пушка и колёса. Остальных охотников с макета
+// оставляем сколько нужно, недостающих создаём, лишних удалит TrimHunterPool.
+function StartHunterPool(runtime)
+{
+	// эффекты прошлого раунда Construct уже удалил вместе с макетом — просто забываем их
+	Effects = [];
+	PoolKeep = [];
+	PoolSurplus = [];
+
+	const Hunter = runtime.objects[CFG.HunterType];
+	const onLayout = Hunter?.getAllInstances() ?? [];
+	if (onLayout.length === 0) return;
+
+	const template = FindHunterTemplate(runtime, onLayout);
+	const others = onLayout.filter(h => h !== template);
+	const keep = [template, ...others.slice(0, HunterCount - 1)];
+	PoolSurplus = others.slice(HunterCount - 1);
+
+	// недостающих создаём из того же объекта
+	const monster = runtime.objects.car.getFirstInstance();
+	while (keep.length < HunterCount)
+	{
+		const hunter = Hunter.createInstance(template.layer.name, template.x, template.y);
+		hunter.width = template.width;
+		hunter.height = template.height;
+		hunter.angle = template.angle;
+
+		const spot = FindSafePoint(runtime, hunter, keep);
+		hunter.x = spot.x;
+		hunter.y = spot.y;
+		if (monster) hunter.angle = AngleFromTo(hunter, monster);   // смотрит на Монстра
+
+		keep.push(hunter);
+	}
+
+	for (const hunter of keep)
+	{
+		hunter.lives = HunterLives;
+		hunter.downed = false;     // true — взорван и ждёт возрождения
+		hunter.respawnIn = 0;
+	}
+	PoolKeep = keep;
+}
+
+// Вызывается в StartGame ПОСЛЕ выбора Player: удаляет лишних охотников с макета.
+// Пушки, колёса, полоски и фары у них уже созданы — старый код уберёт их сам, как у любого уничтоженного охотника.
+function TrimHunterPool(runtime)
+{
+	for (const hunter of PoolSurplus) hunter.destroy();
+
+	// Player мог выпасть на удалённого охотника — берём другого
+	if (PoolSurplus.includes(Player))
+		Player = PoolKeep[Math.floor(Math.random() * PoolKeep.length)] ?? null;
+
+	PoolSurplus = [];
+}
+
+// образец — охотник, ближайший к пушке (а если пушки нет — к колёсам) на макете
+function FindHunterTemplate(runtime, hunters)
+{
+	const sample = runtime.objects[CFG.GunType]?.getFirstInstance()
+	            ?? runtime.objects.КолесоВрага?.getFirstInstance();
+	if (!sample) return hunters[0];
+
+	let best = hunters[0];
+	for (const h of hunters)
+		if (Distance(h, sample) < Distance(best, sample)) best = h;
+	return best;
+}
+
+// ===== Безопасная точка =====
+// Подальше от Монстра и других охотников, не в огне и не в стене.
+// Не нашлось — край арены (самая дальняя от Монстра точка без стены).
+// Охотник на время проверки двигается по кандидатам, в конце возвращается на место.
+function FindSafePoint(runtime, hunter, mates)
+{
+	const layout = runtime.layout;
+	const monster = runtime.objects.car.getFirstInstance();
+	const walls = Instances(runtime, CFG.WallType);
+	const home = { x: hunter.x, y: hunter.y };
+
+	const touchesWall = (x, y) =>
+	{
+		hunter.x = x;
+		hunter.y = y;
+		return walls.some(w => hunter.testOverlap(w));
+	};
+
+	let result = null;
+
+	// 1. случайные точки по всей арене
+	for (let i = 0; i < RespawnTries && !result; i++)
+	{
+		const p = {
+			x: Rand(RespawnMargin, layout.width - RespawnMargin),
+			y: Rand(RespawnMargin, layout.height - RespawnMargin)
+		};
+		if (monster && Distance(monster, p) < RespawnMonsterDistance) continue;
+		if (mates.some(m => Distance(m, p) < RespawnMateDistance)) continue;
+		if (FireZones.some(f => Distance(f, p) < FireRadius + 80)) continue;
+		if (touchesWall(p.x, p.y)) continue;
+		result = p;
+	}
+
+	// 2. запасной вариант — край арены
+	if (!result)
+	{
+		const W = layout.width, H = layout.height, inset = RespawnEdgeInset;
+		const edge = [];
+		for (let i = 0; i <= 8; i++)
+		{
+			const t = i / 8;
+			edge.push({ x: inset + t * (W - 2 * inset), y: inset },
+			          { x: inset + t * (W - 2 * inset), y: H - inset },
+			          { x: inset,     y: inset + t * (H - 2 * inset) },
+			          { x: W - inset, y: inset + t * (H - 2 * inset) });
+		}
+
+		let bestDist = -1;
+		for (const p of edge)
+		{
+			if (touchesWall(p.x, p.y)) continue;
+			const d = monster ? Distance(monster, p) : 0;
+			if (d > bestDist) { result = p; bestDist = d; }
+		}
+	}
+
+	hunter.x = home.x;
+	hunter.y = home.y;
+	return result ?? home;
+}
+
+// ===== Гибель охотника =====
+// Вызывается вместо enemy.destroy() (в Ram и UpdateFire), когда hp <= 0.
+function KillHunter(runtime, hunter)
+{
+	if (hunter.downed || hunter.dead) return;   // уже взорван и ждёт возрождения
+
+	hunter.lives = (hunter.lives ?? HunterLives) - 1;
+	Explode(runtime, hunter.x, hunter.y, hunter.layer.name);
+
+	// жизни кончились — выбывает насовсем (пушка, колёса, полоска и фары уберутся сами)
+	if (hunter.lives <= 0)
+	{
+		hunter.destroy();
+		return;
+	}
+
+	hunter.downed = true;
+	hunter.respawnIn = Rand(RespawnMin, RespawnMax);
+	hunter.pushX = 0;
+	hunter.pushY = 0;
+	hunter.ramCooldown = 1e9;   // пока он «мёртв», CheckHits не вызовет Ram (кулдаун не успевает кончиться)
+
+	// чтобы UpdateHunter его не стрелял, «кончаем» ему выстрелы. При возрождении боезапас обновится
+	HunterData(hunter).shots = CFG.MaxShots;
+
+	SetHunterActive(runtime, hunter, false);
+}
+
+// прячет или возвращает охотника со всем, что к нему прикреплено
+function SetHunterActive(runtime, hunter, active)
+{
+	hunter.isVisible = active;
+	hunter.isCollisionEnabled = active;   // на случай, если это свойство есть в вашей версии
+
+	const bullet = hunter.behaviors.Пуля;
+	if (bullet)
+	{
+		bullet.isEnabled = active;        // выключенный охотник не едет (в том числе под управлением игрока)
+		if (!active) bullet.speed = 0;
+	}
+
+	const gun = hunter.gun;
+	if (gun && !gun.dead) gun.isVisible = active;
+
+	for (const wheel of hunter.wheels ?? [])
+		if (!wheel.dead) wheel.isVisible = active;
+
+	for (const bar of runtime.objects.ПолоскаЗдоровья?.instances() ?? [])
+		if (bar.owner === hunter) bar.isVisible = active;
+
+	// фара-«стиратель» в темноте: прозрачная ничего не стирает
+	for (const light of runtime.objects.Фары?.instances() ?? [])
+		if (light.owner === hunter) light.opacity = active ? 1 : 0;
+}
+
+// ===== Возрождение (каждый кадр из Tick) =====
+function UpdateRespawns(runtime)
+{
+	const dt = runtime.dt;
+	if (dt <= 0) return;   // пауза (всплывающее окно)
+
+	UpdateEffects(runtime, dt);
+
+	for (const hunter of Instances(runtime, CFG.HunterType))
+	{
+		if (!hunter.downed || hunter.dead) continue;
+
+		hunter.respawnIn -= dt;
+		if (hunter.respawnIn <= 0) RespawnHunter(runtime, hunter);
+	}
+}
+
+function RespawnHunter(runtime, hunter)
+{
+	// сначала включаем, чтобы проверка стен в FindSafePoint работала
+	SetHunterActive(runtime, hunter, true);
+
+	const mates = Instances(runtime, CFG.HunterType).filter(h => h !== hunter && !h.downed && !h.dead);
+	const spot = FindSafePoint(runtime, hunter, mates);
+	hunter.x = spot.x;
+	hunter.y = spot.y;
+
+	const monster = runtime.objects.car.getFirstInstance();
+	if (monster) hunter.angle = AngleFromTo(hunter, monster);
+	hunter.prevAngle = hunter.angle;   // чтобы колёса не дёрнулись от скачка угла
+	hunter.wheelTurn = 0;
+
+	hunter.hp = EnemyMaxHp;
+	hunter.downed = false;
+	hunter.pushX = 0;
+	hunter.pushY = 0;
+	hunter.ramCooldown = RespawnProtection;
+
+	hunterState.delete(hunter);   // свежее состояние: снова 10 выстрелов
+}
+
+// ===== Эффект взрыва =====
+// Если в проекте есть спрайт «Взрыв» (анимация без повтора) — играет он.
+// Нет — разлетаются искры из спрайта луча, так что эффект работает и без новых картинок.
+function Explode(runtime, x, y, layerName)
+{
+	Beep(120, 0.5);
+
+	const Boom = runtime.objects[ExplosionType];
+	if (Boom)
+	{
+		const boom = Boom.createInstance(layerName, x, y);
+		boom.addEventListener("animationend", () => { if (!boom.dead) boom.destroy(); });
+		Effects.push({ inst: boom, age: 0, life: ExplosionSpriteTime });
+		return;
+	}
+
+	const Spark = runtime.objects[CFG.LaserType];
+	if (!Spark) return;
+
+	for (let i = 0; i < SparkCount; i++)
+	{
+		const angle = Rand(0, Math.PI * 2);
+		const spark = Spark.createInstance(layerName, x, y);
+		spark.angle = angle;
+		Effects.push({
+			inst: spark, age: 0, life: ExplosionTime,
+			dx: Math.cos(angle), dy: Math.sin(angle),
+			speed: Rand(SparkSpeedMin, SparkSpeedMax)
+		});
+	}
+}
+
+function UpdateEffects(runtime, dt)
+{
+	for (let i = Effects.length - 1; i >= 0; i--)
+	{
+		const fx = Effects[i];
+		if (fx.inst.dead) { Effects.splice(i, 1); continue; }
+
+		fx.age += dt;
+		if (fx.age >= fx.life)
+		{
+			fx.inst.destroy();
+			Effects.splice(i, 1);
+			continue;
+		}
+
+		if (fx.speed)   // искра: летит и гаснет
+		{
+			fx.inst.x += fx.dx * fx.speed * dt;
+			fx.inst.y += fx.dy * fx.speed * dt;
+			fx.inst.opacity = 1 - fx.age / fx.life;
+		}
+	}
 }
 
 // ===== Помощники =====
