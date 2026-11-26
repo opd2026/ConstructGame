@@ -61,8 +61,8 @@
 					"showing": true,
 					"locked": false,
 					"world": {
-						"x": 879,
-						"y": 453,
+						"x": 889,
+						"y": 418,
 						"width": 167,
 						"height": 49,
 						"originX": 0,
@@ -96,8 +96,8 @@
 					"showing": true,
 					"locked": false,
 					"world": {
-						"x": 886,
-						"y": 554,
+						"x": 888,
+						"y": 544,
 						"width": 159,
 						"height": 46,
 						"originX": 0,
@@ -284,6 +284,76 @@
 						],
 						"z": 0,
 						"angle": 3.141592653589793
+					}
+				},
+				{
+					"type": "КнопкаНастроек",
+					"properties": {
+						"type": "button",
+						"text": "Настройки",
+						"tooltip": "",
+						"initially-visible": true,
+						"enabled": true,
+						"auto-font-size": true,
+						"checked": false,
+						"id": "",
+						"class": ""
+					},
+					"uid": 79,
+					"sid": 510243662910824,
+					"tags": "",
+					"instanceVariables": {},
+					"behaviors": {},
+					"showing": true,
+					"locked": false,
+					"world": {
+						"x": 887,
+						"y": 669,
+						"width": 168,
+						"height": 44,
+						"originX": 0,
+						"originY": 0,
+						"color": [
+							1,
+							1,
+							1,
+							1
+						]
+					}
+				},
+				{
+					"type": "КнопкаГромкости",
+					"properties": {
+						"type": "button",
+						"text": "Громкость: 100%",
+						"tooltip": "",
+						"initially-visible": false,
+						"enabled": true,
+						"auto-font-size": true,
+						"checked": false,
+						"id": "",
+						"class": ""
+					},
+					"uid": 80,
+					"sid": 510243662910825,
+					"tags": "",
+					"instanceVariables": {},
+					"behaviors": {},
+					"showing": true,
+					"locked": false,
+					"world": {
+						"x": 843,
+						"y": 483,
+						"width": 240,
+						"height": 49,
+						"originX": 0,
+						"originY": 0,
+						"color": [
+							1,
+							1,
+							1,
+							1
+						]
 					}
 				}
 			],

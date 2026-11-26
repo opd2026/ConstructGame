@@ -63,6 +63,28 @@ function StartMenu(runtime)
 
 	const hunterBtn = runtime.objects.КнопкаОхотника.getFirstInstance();
 	const minicBtn  = runtime.objects.КнопкаМиника.getFirstInstance();
+	const settingsBtn = runtime.objects.КнопкаНастроек.getFirstInstance();
+	const volumeBtn = runtime.objects.КнопкаГромкости.getFirstInstance();
+
+	function ShowSettings(open)
+	{
+		hunterBtn.isVisible = !open;
+		minicBtn.isVisible = !open;
+		settingsBtn.text = open ? "Назад" : "Настройки";
+		volumeBtn.isVisible = open;
+		volumeBtn.text = "Громкость: " + SoundVolume + "%";
+	}
+
+	settingsBtn.addEventListener("click", () => ShowSettings(!volumeBtn.isVisible));
+	volumeBtn.addEventListener("click", () =>
+	{
+		// По кругу: 100% → 50% → 0% → 100%.
+		SoundVolume = SoundVolume === 0 ? 100 : SoundVolume - 50;
+		if (MasterGain) MasterGain.gain.value = SoundVolume / 100;
+		volumeBtn.text = "Громкость: " + SoundVolume + "%";
+		Beep(600, 0.15);
+	});
+	ShowSettings(false);
 
 	hunterBtn?.addEventListener("click", () => SelectRole(runtime, true));
 	minicBtn?.addEventListener("click",  () => SelectRole(runtime, false));
@@ -71,6 +93,7 @@ function StartMenu(runtime)
 function SelectRole(runtime, hunter)
 {
 	IsHunter = hunter;
+	if (SoundVolume > 0) EnableSound();
 	runtime.goToLayout(GAME_LAYOUT);
 }
 
@@ -665,12 +688,27 @@ function RandomFreePoint(runtime)
 
 // короткий звуковой сигнал. Звуковых файлов нет: звук создаёт сам браузер
 let AudioCtx = null;
+let MasterGain = null;
+let SoundVolume = 100;   // общий уровень в процентах, хранится между раундами
+
+function EnableSound()
+{
+	if (typeof AudioContext === "undefined") return;
+	if (!AudioCtx)
+	{
+		AudioCtx = new AudioContext();
+		MasterGain = AudioCtx.createGain();
+		MasterGain.gain.value = SoundVolume / 100;
+		MasterGain.connect(AudioCtx.destination);
+	}
+	if (AudioCtx.state === "suspended") AudioCtx.resume().catch(() => {});
+}
 
 function Beep(frequency, seconds)
 {
-	if (typeof AudioContext === "undefined") return;   // звук недоступен
-	AudioCtx ??= new AudioContext();
-	if (AudioCtx.state === "suspended") AudioCtx.resume();
+	if (SoundVolume === 0) return;
+	EnableSound();
+	if (!AudioCtx) return;
 
 	const now = AudioCtx.currentTime;
 	const sound = AudioCtx.createOscillator();
@@ -679,7 +717,7 @@ function Beep(frequency, seconds)
 	volume.gain.setValueAtTime(0.15, now);                           // громкость
 	volume.gain.exponentialRampToValueAtTime(0.001, now + seconds);  // плавно затихает
 	sound.connect(volume);
-	volume.connect(AudioCtx.destination);
+	volume.connect(MasterGain);
 	sound.start(now);
 	sound.stop(now + seconds);
 }

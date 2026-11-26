@@ -1,9 +1,9 @@
 {
 	"projectFormatVersion": 1,
-	"savedWithRelease": 50603,
+	"savedWithRelease": 50604,
 	"name": "Новый проект",
 	"runtime": "c3",
-	"useWorker": "auto",
+	"useWorker": "no",
 	"bundleAddons": false,
 	"usedAddons": [
 		{
@@ -112,7 +112,9 @@
 			"Тьма",
 			"Фары",
 			"Огонь",
-			"ИвентТекст"
+			"ИвентТекст",
+			"КнопкаНастроек",
+			"КнопкаГромкости"
 		],
 		"subfolders": []
 	},
