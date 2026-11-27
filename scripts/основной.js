@@ -105,6 +105,7 @@ function StartGame(runtime)
 	CreateEnemyWheels(runtime);
 
 	ResetEvents();               // таймер ивентов — с начала
+	ResetPickups(runtime);         // пикапы — с начала (таймер, образцы с макета)
 	CreateDarkness(runtime);     // темнота и фары для ивента «Отключение света»
 
 	// выбираем, кем управляет игрок
@@ -218,6 +219,7 @@ function Tick(runtime)
 	CheckWin(runtime);
 	UpdateCamera(runtime, Player);
 	UpdateEvents(runtime, car);   // ивенты арены: таймер, темнота, стены, огонь
+	UpdatePickups(runtime, car);  // пикапы: появление и подбор
 	UpdateBoostBar(runtime);
 	UpdateHealthBars(runtime);
 	CountEnemys(runtime);
@@ -1320,6 +1322,209 @@ function UpdateEffects(runtime, dt)
 			fx.inst.opacity = 1 - fx.age / fx.life;
 		}
 	}
+}
+
+// ===================================================
+// ============ ПИКАПЫ: АПТЕЧКИ И БРОНЬ ==============
+// ===================================================
+// На арене с интервалом появляются пикапы в случайных свободных точках.
+// Машина (Монстр или охотник) проезжает через пикап — он исчезает, а машина лечится или получает щит.
+//
+// Спрайты, которые нужно создать в Construct 3 (имена должны совпадать точно):
+//   Аптечка  — восстанавливает половину максимума HP
+//   Бронь    — на несколько секунд даёт неуязвимость: урон не проходит
+// Размер пикапов задаёт константа PickupSize, на макете размер править не нужно.
+// Образцы, если они лежат на макете, код при старте раунда удаляет. Пока без звука и эффекта подбора.
+
+// ===== Настройки =====
+const PickupTypes =
+[
+	// heal — доля от максимума HP (0.5 = половина), shield — сколько секунд урон не проходит
+	{ name: "Аптечка", heal: 0.5, shield: 0 },
+	{ name: "Бронь",   heal: 0,   shield: 5 },
+];
+const PickupLayer = "Слой 0";      // слой, на котором появляются пикапы
+const PickupSize = 50;             // размер пикапа в пикселях (по большей стороне картинки, пропорции сохраняются)
+const PickupFirstDelay = 5;        // секунд от начала раунда до первого пикапа
+const PickupInterval = 10;         // каждые столько секунд появляется новый пикап
+const PickupMax = 4;               // сколько пикапов одновременно лежит на арене
+const PickupLifetime = 25;         // секунд лежит, если никто не взял (0 — лежит, пока не возьмут)
+const PickupOnlyWhenHurt = true;   // true — машина с полным HP пикап не берёт, false — берёт любая
+const PickupMargin = 150;          // не появляются ближе этого к краю арены
+const PickupMachineDistance = 200; // ... и ближе этого к любой машине
+const PickupSpacing = 250;         // ... и ближе этого друг к другу
+const PickupTries = 30;            // сколько случайных точек пробуем за одно появление
+
+// ===== Состояние =====
+let Pickups = [];          // лежащие пикапы: { inst, heal, age }
+let PickupTimer = PickupFirstDelay;   // секунд до следующего пикапа
+
+// вызывается в начале раунда (StartGame)
+function ResetPickups(runtime)
+{
+	// пикапы прошлого раунда Construct уже удалил вместе с макетом — просто забываем их
+	Pickups = [];
+	PickupTimer = PickupFirstDelay;
+
+	for (const def of PickupTypes)
+	{
+		const type = runtime.objects[def.name];
+		if (!type)
+		{
+			console.warn("Пикапы: в проекте нет спрайта «" + def.name + "», такие пикапы появляться не будут");
+			continue;
+		}
+
+		// образцы с макета убираем (иначе они лежали бы на арене, и их никто не считал)
+		for (const old of type.getAllInstances()) old.destroy();
+	}
+}
+
+// каждый кадр (Tick): появление, срок жизни и подбор
+function UpdatePickups(runtime, car)
+{
+	const dt = runtime.dt;
+	if (dt <= 0) return;   // пауза (всплывающее окно)
+
+	// пора выложить новый пикап
+	PickupTimer -= dt;
+	if (PickupTimer <= 0)
+	{
+		PickupTimer = PickupInterval;
+		if (Pickups.length < PickupMax) SpawnPickup(runtime);
+	}
+
+	// подбирать могут Монстр и живые охотники (взорванные и ждущие возрождения — нет)
+	const machines = [car, ...Instances(runtime, CFG.HunterType).filter(h => !h.downed && !h.dead)];
+
+	// щит охотников: таймер, Монстр его не таранит, огонь не отнимает hp.
+	// (у Монстра щит — это общая Invuln, её уже считают UpdateInvuln и DamageMonster)
+	for (const m of machines)
+	{
+		if (m === car || !(m.shieldLeft > 0)) continue;
+
+		m.shieldLeft -= dt;
+		m.ramCooldown = Math.max(m.ramCooldown ?? 0, 0.1);
+		if (m.hp < m.shieldHp) m.hp = m.shieldHp;   // урон за кадр откатываем
+		else m.shieldHp = m.hp;                     // а лечение принимаем
+	}
+
+	for (let i = Pickups.length - 1; i >= 0; i--)
+	{
+		const pickup = Pickups[i];
+		if (pickup.inst.dead) { Pickups.splice(i, 1); continue; }
+
+		// никто не взял — пикап пропадает, новый появится в другом месте
+		pickup.age += dt;
+		if (PickupLifetime > 0 && pickup.age >= PickupLifetime)
+		{
+			pickup.inst.destroy();
+			Pickups.splice(i, 1);
+			continue;
+		}
+
+		const taker = machines.find(m => CanTakePickup(car, m, pickup) && m.testOverlap(pickup.inst));
+		if (!taker) continue;
+
+		if (pickup.heal > 0)   HealMachine(car, taker, pickup.heal);
+		if (pickup.shield > 0) ShieldMachine(car, taker, pickup.shield);
+		pickup.inst.destroy();   // использован — исчезает
+		Pickups.splice(i, 1);
+	}
+}
+
+// может ли машина взять пикап прямо сейчас
+function CanTakePickup(car, machine, pickup)
+{
+	const isMonster = (machine === car);
+	const hp  = isMonster ? HP : machine.hp;
+	const max = isMonster ? HPMax : EnemyMaxHp;
+
+	if (hp <= 0) return false;                   // уже уничтожена
+	if (!PickupOnlyWhenHurt) return true;
+
+	// мимо, если пользы нет: HP полный (для аптечки) или щит уже горит (для брони)
+	const needsHeal   = pickup.heal > 0   && hp < max;
+	const needsShield = pickup.shield > 0 && ShieldLeft(car, machine) <= 0;
+	return needsHeal || needsShield;
+}
+
+// у Монстра HP — общая переменная игры, у охотника — его hp
+function HealMachine(car, machine, fraction)
+{
+	if (machine === car) HP = Math.min(HPMax, HP + HPMax * fraction);
+	else machine.hp = Math.min(EnemyMaxHp, machine.hp + EnemyMaxHp * fraction);
+}
+
+// сколько секунд щита осталось у машины
+function ShieldLeft(car, machine)
+{
+	return (machine === car) ? Invuln : (machine.shieldLeft ?? 0);
+}
+
+// включает щит на seconds секунд
+function ShieldMachine(car, machine, seconds)
+{
+	if (machine === car)
+	{
+		// Монстр: общая неуязвимость игры. DamageMonster не пропускает урон (лазер и огонь),
+		// а UpdateInvuln делает машину полупрозрачной
+		Invuln = Math.max(Invuln, seconds);
+		return;
+	}
+
+	machine.shieldLeft = Math.max(machine.shieldLeft ?? 0, seconds);
+	machine.shieldHp = machine.hp;                                    // ниже этого hp не опустится
+	machine.ramCooldown = Math.max(machine.ramCooldown ?? 0, 0.1);    // таран не пройдёт уже в следующем кадре
+}
+
+// создаёт один случайный пикап в свободной точке арены (не нашлось точки — не создаёт)
+function SpawnPickup(runtime)
+{
+	const defs = PickupTypes.filter(def => runtime.objects[def.name]);   // только те спрайты, что есть в проекте
+	if (defs.length === 0) return;
+
+	const def = defs[RandInt(0, defs.length - 1)];
+	const inst = runtime.objects[def.name].createInstance(PickupLayer, 0, 0);
+
+	// большая сторона картинки = PickupSize, пропорции сохраняются
+	const k = PickupSize / (Math.max(inst.width, inst.height) || PickupSize);
+	inst.width *= k;
+	inst.height *= k;
+
+	if (!PlacePickup(runtime, inst))
+	{
+		inst.destroy();
+		return;
+	}
+	Pickups.push({ inst, heal: def.heal ?? 0, shield: def.shield ?? 0, age: 0 });
+}
+
+// ставит пикап в случайную точку: не у края арены, не рядом с машинами и другими пикапами,
+// не в огне и не в стене
+function PlacePickup(runtime, inst)
+{
+	const layout = runtime.layout;
+	const walls = Instances(runtime, CFG.WallType);
+	const machines = [runtime.objects.car.getFirstInstance(), ...Instances(runtime, CFG.HunterType)];
+
+	for (let i = 0; i < PickupTries; i++)
+	{
+		const p = {
+			x: Rand(PickupMargin, layout.width - PickupMargin),
+			y: Rand(PickupMargin, layout.height - PickupMargin)
+		};
+		if (machines.some(m => m && !m.dead && Distance(m, p) < PickupMachineDistance)) continue;
+		if (Pickups.some(o => !o.inst.dead && Distance(o.inst, p) < PickupSpacing)) continue;
+		if (FireZones.some(f => Distance(f, p) < FireRadius)) continue;
+
+		inst.x = p.x;
+		inst.y = p.y;
+		if (walls.some(w => inst.testOverlap(w))) continue;   // стена на этом месте
+
+		return true;
+	}
+	return false;
 }
 
 // ===== Помощники =====
