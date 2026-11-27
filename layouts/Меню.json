@@ -61,8 +61,8 @@
 					"showing": true,
 					"locked": false,
 					"world": {
-						"x": 879,
-						"y": 453,
+						"x": 889,
+						"y": 418,
 						"width": 167,
 						"height": 49,
 						"originX": 0,
@@ -96,8 +96,8 @@
 					"showing": true,
 					"locked": false,
 					"world": {
-						"x": 886,
-						"y": 554,
+						"x": 888,
+						"y": 544,
 						"width": 159,
 						"height": 46,
 						"originX": 0,
@@ -287,43 +287,30 @@
 					}
 				},
 				{
-					"type": "ТекстКоличестваОхотников",
+					"type": "КнопкаНастроек",
 					"properties": {
-						"text": "Текст",
-						"enable-bbcode": true,
-						"font": "Arial",
-						"size": 12,
-						"line-height": 0,
-						"bold": false,
-						"italic": false,
-						"color": [
-							0,
-							0,
-							0,
-							1
-						],
-						"horizontal-alignment": "center",
-						"vertical-alignment": "center",
-						"wrapping": "word",
-						"text-direction": "ltr",
-						"icon-set": -1,
+						"type": "button",
+						"text": "Настройки",
+						"tooltip": "",
 						"initially-visible": true,
-						"origin": "top-left",
-						"read-aloud": false
+						"enabled": true,
+						"auto-font-size": true,
+						"checked": false,
+						"id": "",
+						"class": ""
 					},
-					"uid": 12,
-					"sid": 927070234940328,
+					"uid": 79,
+					"sid": 510243662910824,
 					"tags": "",
 					"instanceVariables": {},
 					"behaviors": {},
-					"materialSurfaceType": "smooth",
 					"showing": true,
 					"locked": false,
 					"world": {
-						"x": 870,
-						"y": 228,
-						"width": 200,
-						"height": 30,
+						"x": 887,
+						"y": 669,
+						"width": 168,
+						"height": 44,
 						"originX": 0,
 						"originY": 0,
 						"color": [
@@ -331,9 +318,42 @@
 							1,
 							1,
 							1
-						],
-						"z": 0,
-						"angle": 0
+						]
+					}
+				},
+				{
+					"type": "КнопкаГромкости",
+					"properties": {
+						"type": "button",
+						"text": "Громкость: 100%",
+						"tooltip": "",
+						"initially-visible": false,
+						"enabled": true,
+						"auto-font-size": true,
+						"checked": false,
+						"id": "",
+						"class": ""
+					},
+					"uid": 80,
+					"sid": 510243662910825,
+					"tags": "",
+					"instanceVariables": {},
+					"behaviors": {},
+					"showing": true,
+					"locked": false,
+					"world": {
+						"x": 843,
+						"y": 483,
+						"width": 240,
+						"height": 49,
+						"originX": 0,
+						"originY": 0,
+						"color": [
+							1,
+							1,
+							1,
+							1
+						]
 					}
 				}
 			],
